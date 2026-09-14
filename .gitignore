@@ -1,0 +1,15 @@
+# 依赖 / 缓存
+data/appmeta.json
+data/snapshot.json
+data/_server.log
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

@@ -1,0 +1,14 @@
+# 统一换行符，避免跨平台协作出问题
+* text=auto eol=lf
+
+# Windows 批处理必须用 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Shell 脚本必须用 LF，否则在 Linux/macOS 上无法执行
+*.sh text eol=lf
+
+# 二进制
+*.png binary
+*.jpg binary
+*.ico binary
