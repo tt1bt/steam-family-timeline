@@ -19,10 +19,11 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import console  # noqa: E402
+import version  # noqa: E402
 
 CACHE_TTL = 30 * 24 * 3600  # 30 天
 API = "https://store.steampowered.com/api/appdetails"
-UA = "steam-family-timeline/1.0 (+https://github.com/tt1bt/steam-family-timeline)"
+UA = version.USER_AGENT
 
 
 def _http_json(url: str, retries: int = 4) -> dict | None:

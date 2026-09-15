@@ -235,11 +235,17 @@ def main():
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--refresh", action="store_true", help="启动时强制重新采集")
     ap.add_argument("--rebuild", action="store_true", help="只重新生成快照后退出")
+    ap.add_argument("--selftest", action="store_true",
+                    help="打印环境自检信息后退出（报 bug 时贴这个）")
     ap.add_argument("--no-pause", action="store_true",
                     help="出错时不等待按键（脚本/CI 用）")
     ap.add_argument("--version", action="version",
                     version=f"{version.APP_NAME} v{version.__version__}")
     args = ap.parse_args()
+
+    if args.selftest:
+        print_selftest()
+        return
 
     # 框线宽度按标题长度算，改名字/版本号不会错位。
     # 注意 APP_NAME 目前是纯 ASCII，len() 就等于显示宽度；若以后改成中文名，
@@ -345,6 +351,98 @@ def build_snapshot_fresh() -> dict:
         json.dump(data, fh, ensure_ascii=False, indent=2)
     _state["data"] = data
     return data
+
+
+def print_selftest() -> None:
+    """打印环境自检信息。
+
+    用途有两个：一是让用户遇到「双击没反应」时能一键把环境状况贴出来
+    （日志可能根本写不出来，这个命令的产出是最后一道线索）；
+    二是我自己验证打包结果 —— 比如 exe 里烧进去的 User-Agent 是不是新的。
+    """
+    import platform
+
+    say = console.say
+    say("")
+    say("=" * 62)
+    say(f"  {version.APP_NAME} v{version.__version__}  环境自检")
+    say("=" * 62)
+    say("")
+    say("【程序】")
+    say(f"  打包模式      : {'单文件 exe' if paths.FROZEN else '源码'}")
+    say(f"  可执行文件    : {sys.executable}")
+    say(f"  只读资源目录  : {paths.RESOURCE_ROOT}")
+    say(f"  前端页面      : {os.path.join(paths.WEB_DIR, 'index.html')}"
+        f"  {'✓ 存在' if os.path.isfile(os.path.join(paths.WEB_DIR, 'index.html')) else '✗ 缺失'}")
+    say(f"  项目主页      : {version.REPO_URL}")
+    say(f"  User-Agent    : {version.USER_AGENT}")
+    say("")
+    say("【路径】")
+    say(f"  数据目录      : {paths.DATA_DIR}")
+    say(f"  ├ 可写        : {'✓' if _writable(paths.DATA_DIR) else '✗ 不可写！'}")
+    say(f"  ├ 元数据缓存  : {paths.META_CACHE}"
+        f"  {'✓' if os.path.isfile(paths.META_CACHE) else '（首次运行会生成）'}")
+    say(f"  ├ 快照        : {paths.SNAPSHOT}"
+        f"  {'✓' if os.path.isfile(paths.SNAPSHOT) else '（尚未生成）'}")
+    say(f"  └ 日志        : {paths.LOG_FILE}")
+    say("")
+    say("【运行环境】")
+    say(f"  Python        : {sys.version.split()[0]}")
+    say(f"  平台          : {platform.platform()}")
+    say(f"  控制台编码    : {getattr(sys.stdout, 'encoding', '?')}")
+    say(f"  stdin 是终端  : {_safe_isatty()}")
+    say("")
+    say("【Steam】")
+    env = os.environ.get("STEAM_FAMILY_STEAM_PATH")
+    say(f"  环境变量覆盖  : {env or '（未设置）'}")
+    try:
+        import steam_data as sd
+        root = sd.read_steam_env() or sd.find_steam_root()
+        say(f"  检测到根目录  : {root or '✗ 没找到'}")
+        if root:
+            log = os.path.join(root, "logs", "librarysharing_log.txt")
+            say(f"  ├ steam.exe   : {'✓' if os.path.isfile(os.path.join(root, 'steam.exe')) else '✗'}")
+            say(f"  ├ 共享日志    : {log}")
+            if os.path.isfile(log):
+                size = os.path.getsize(log)
+                say(f"  │  └ 大小     : {size:,} 字节"
+                    f"{'  ⚠ 空的，本机可能没用过家庭共享' if size == 0 else ''}")
+            else:
+                say("  │  └ ✗ 不存在，本机没有家庭共享记录")
+            ud = os.path.join(root, "userdata")
+            if os.path.isdir(ud):
+                accounts = [d for d in os.listdir(ud) if d.isdigit()]
+                say(f"  └ userdata    : {len(accounts)} 个账号目录")
+    except Exception as exc:  # noqa: BLE001
+        say(f"  检测失败      : {type(exc).__name__}: {exc}")
+    say("")
+    say("【网络】")
+    for key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
+        val = os.environ.get(key)
+        if val:
+            say(f"  {key:<14}: {val}")
+    say("  （上面为空说明直连）")
+    say("")
+    say("=" * 62)
+
+
+def _writable(path: str) -> bool:
+    try:
+        os.makedirs(path, exist_ok=True)
+        probe = os.path.join(path, ".sft_selftest")
+        with open(probe, "w", encoding="utf-8") as fh:
+            fh.write("x")
+        os.remove(probe)
+        return True
+    except Exception:
+        return False
+
+
+def _safe_isatty() -> bool:
+    try:
+        return bool(sys.stdin and sys.stdin.isatty())
+    except Exception:
+        return False
 
 
 def run() -> int:

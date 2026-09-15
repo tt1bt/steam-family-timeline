@@ -1,7 +1,7 @@
 # Steam Family Toolbox
 
-[![Release](https://img.shields.io/github/v/release/tt1bt/steam-family-timeline?color=2f6fdb&label=release)](https://github.com/tt1bt/steam-family-timeline/releases/latest)
-[![License](https://img.shields.io/github/license/tt1bt/steam-family-timeline?color=1a9c5b)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/tt1bt/steam-family-toolbox?color=2f6fdb&label=release)](https://github.com/tt1bt/steam-family-toolbox/releases/latest)
+[![License](https://img.shields.io/github/license/tt1bt/steam-family-toolbox?color=1a9c5b)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.9%2B-2f6fdb)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-1a9c5b)
 
@@ -12,7 +12,7 @@
 
 纯本地运行 —— 不登录、不上传、不需要 API Key、**零第三方依赖**。
 
-[**⬇ 下载 Windows 版（免装 Python）**](https://github.com/tt1bt/steam-family-timeline/releases/latest)
+[**⬇ 下载 Windows 版（免装 Python）**](https://github.com/tt1bt/steam-family-toolbox/releases/latest)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -102,8 +102,8 @@
 
 ### 方式一：直接下载 exe（Windows，免装 Python）
 
-从 [Releases](https://github.com/tt1bt/steam-family-timeline/releases/latest) 下载
-`steam-family-toolbox-v1.0.0-windows-x64.exe`，**放到一个你自己能写的文件夹里**
+从 [Releases](https://github.com/tt1bt/steam-family-toolbox/releases/latest) 下载
+`steam-family-toolbox-<版本>-windows-x64.exe`，**放到一个你自己能写的文件夹里**
 （比如桌面新建一个文件夹），双击运行。
 
 - 会自动打开浏览器，页面里显示采集进度
@@ -165,7 +165,7 @@ python src/server.py
 ## 项目结构
 
 ```
-steam-family-timeline/
+steam-family-toolbox/
 ├── 启动.cmd              # Windows 一键启动（源码方式）
 ├── start.sh              # macOS / Linux 启动
 ├── src/
@@ -194,6 +194,17 @@ steam-family-timeline/
 
 ## 出问题了怎么排查
 
+### 第一步：跑一次自检
+
+```bat
+cd /d <exe 所在目录>
+steam-family-toolbox.exe --selftest
+```
+
+会打印一份环境报告：打包模式、数据目录是否可写、前端页面在不在、
+**Steam 有没有被检测到**、共享日志大小、以及系统代理设置。
+报 bug 时把这段贴出来，八成的问题一眼就能看出来。
+
 ### 双击没反应 / 窗口一闪而过
 
 **从 v1.0.2 起，启动失败会在窗口里打出一份完整报告并停住等你按回车**，
@@ -209,6 +220,26 @@ steam-family-timeline/
    ```
 2. 检查 `<exe 所在目录>\data\_server.log` 有没有内容
 3. 把 exe 加入杀毒软件白名单后重试
+
+### 页面能打开但游戏名都是 AppID
+
+说明抓商店元数据失败了（页面会退化成显示 AppID，不影响其他功能）。
+
+先 `--selftest` 看**系统代理**那一节——本工具用的是 Python 标准库的默认行为，
+也就是**会读 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量，Windows 上还会读注册表里的
+系统代理设置**。如果你挂着代理，或者在公司网络里，这些请求可能被拦。
+
+排查顺序：
+
+1. 先确认是不是限流。抓 400 款游戏会打很多请求，Steam 返回 **429** 时程序会
+   指数退避重试，最后抓不全但不报错。**再跑一次 `--refresh` 通常能补齐**
+2. 如果确实是被代理拦了，临时清掉代理再跑：
+   ```bat
+   set HTTP_PROXY=
+   set HTTPS_PROXY=
+   steam-family-toolbox.exe --refresh
+   ```
+3. 也可以看 `data\_server.log`，抓取失败会记在里面
 
 ### 端口被占用
 
@@ -233,6 +264,18 @@ steam-family-toolbox.exe --port 9001
 ### 想重置
 
 删掉 exe 同级的 `data/` 目录即可，下次启动会重新采集。
+
+## 命令行参数
+
+| 参数 | 作用 |
+|---|---|
+| `--selftest` | 打印环境自检报告后退出（报 bug 用这个） |
+| `--port N` | 换端口，默认 8765 |
+| `--no-browser` | 不自动开浏览器 |
+| `--refresh` | 启动时强制重新采集 |
+| `--rebuild` | 只重新生成快照后退出 |
+| `--no-pause` | 出错时不等待按键（脚本 / CI 用） |
+| `--version` | 打印版本 |
 
 ## 自己打包 exe
 

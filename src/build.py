@@ -57,7 +57,7 @@ def resolve_remote_names(accountids: list[str]) -> dict[str, str]:
         url = f"https://steamcommunity.com/profiles/{sid64}?xml=1"
         try:
             req = urllib.request.Request(
-                url, headers={"User-Agent": "steam-family-timeline/1.0"}
+                url, headers={"User-Agent": version.USER_AGENT}
             )
             with urllib.request.urlopen(req, timeout=20) as resp:
                 text = resp.read().decode("utf-8", errors="replace")
