@@ -87,7 +87,11 @@ class MetaCache:
 
         ``progress(stage, done, total)`` 可选回调，用来给界面上报进度。
         """
-        todo = [a for a in appids if not self.is_fresh(a)]
+        # 防御性过滤：非正整数 appid 商店必然查不到，白等重试（appid 0 尤其常见）
+        def _usable(a: str) -> bool:
+            return a.isdigit() and int(a) > 0
+
+        todo = [a for a in appids if _usable(a) and not self.is_fresh(a)]
         if not todo:
             return 0
 

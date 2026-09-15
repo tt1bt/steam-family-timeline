@@ -12,6 +12,7 @@ import steam_play as sp  # noqa: E402
 import analyze as an  # noqa: E402
 import paths  # noqa: E402
 import console  # noqa: E402
+import version  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
@@ -269,6 +270,9 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
         "last_ts": max(stamps) if stamps else None,
         "steam_root": root,
         "local_accounts": len(playtime_by_account),
+        # 前端 footer 显示，方便用户报 bug 时报出版本
+        "app_name": version.APP_NAME,
+        "version": version.__version__,
     }
 
     snapshot = {

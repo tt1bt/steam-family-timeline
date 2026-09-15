@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title Steam 家庭组时间线
+title Steam Family Toolbox
 cd /d "%~dp0"
 
 echo.
-echo   正在启动 Steam 家庭组时间线...
+echo   正在启动 Steam Family Toolbox...
 echo.
 
 REM 优先使用 WorkBuddy 内置的 Python，其次用系统 python

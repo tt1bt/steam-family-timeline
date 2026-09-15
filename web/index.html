@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Steam 家庭组工具箱</title>
+<title>Steam Family Toolbox</title>
 <style>
 :root{
   --bg:#f4f5f7; --panel:#ffffff; --panel-2:#fafbfc; --border:#e3e6ea;
@@ -32,6 +32,7 @@ header.hero{
 }
 .hero h1{margin:0 0 4px;font-size:22px;letter-spacing:-.01em}
 .hero .sub{color:var(--text-2);font-size:13px}
+.hero .sub b{color:var(--text);font-weight:650}
 .hero .sub code{
   background:var(--accent-soft);padding:1px 6px;border-radius:4px;
   font-size:12px;color:var(--accent)
@@ -334,7 +335,7 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
 <div class="wrap">
 
   <header class="hero">
-    <h1 id="title">Steam 家庭组工具箱</h1>
+    <h1 id="title">Steam Family Toolbox</h1>
     <div class="sub" id="subtitle">加载中…</div>
     <div class="stats" id="stats"></div>
   </header>
@@ -397,6 +398,7 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
     <code>userdata/*/config/librarycache/*.json</code> ·
     <code>config/loginusers.vdf</code><br>
     游戏元数据来自 Steam 商店公开接口。本工具完全离线运行，不上传任何数据。
+    <div id="versionLine" style="margin-top:8px;color:var(--text-3)"></div>
   </footer>
 </div>
 
@@ -493,9 +495,12 @@ async function boot(){
 
 function render(){
   const s = DATA.summary;
-  $('#title').textContent = s.group_name;
+
+  // h1 固定是工具名，家庭组名放到副标题 —— 工具名之前从来没在界面上出现过
+  document.title = `Steam Family Toolbox — ${s.group_name}`;
   $('#subtitle').innerHTML =
-    `家庭组 ID <code>${esc(s.group_id)}</code> · Steam 目录 <code>${esc(s.steam_root)}</code>`;
+    `<b>${esc(s.group_name)}</b> · 家庭组 ID <code>${esc(s.group_id)}</code> · ` +
+    `Steam 目录 <code>${esc(s.steam_root)}</code>`;
 
   const days = Math.max(1, Math.round((s.last_ts-s.first_ts)/86400));
   $('#stats').innerHTML = [
@@ -509,6 +514,8 @@ function render(){
      <div class="v">${v}${u?`<small>${u}</small>`:''}</div></div>`).join('');
 
   buildChips();
+  $('#versionLine').textContent =
+    `${s.app_name || 'Steam Family Toolbox'} v${s.version || '?'}`;
   $('#loading').classList.add('hidden');
   $('#note').classList.remove('hidden');   // 数据就绪后才提示口径
   $('#app').classList.remove('hidden');

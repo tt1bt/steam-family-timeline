@@ -19,6 +19,8 @@ import sys
 # PyInstaller 会在运行时给 sys 打上 frozen 标记
 FROZEN = bool(getattr(sys, "frozen", False))
 
+#: 数据目录用的名字。和 version.APP_NAME 刻意不同 —— 这里要当文件系统路径用，
+#: 不能有空格，改它会连带改变已有用户的缓存位置。
 APP_NAME = "SteamFamilyToolbox"
 
 

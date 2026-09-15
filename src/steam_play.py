@@ -70,6 +70,10 @@ def load_playtime(root: str, accountid: str) -> dict[str, dict]:
         for appid, info in section.items():
             if not appid.isdigit() or not isinstance(info, dict):
                 continue
+            # appid 0 是 Steam 自己的「非 Steam 应用」汇总桶（实测里面有 6 分钟），
+            # 不是真实游戏：它在商店查不到，白占一次请求 + 重试
+            if int(appid) <= 0:
+                continue
             # 只要含任一游玩相关字段就算有效记录
             if not any(k in info for k in
                        ("Playtime", "Playtime2wks", "LastPlayed", "autocloud")):

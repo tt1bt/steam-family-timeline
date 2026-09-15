@@ -1,12 +1,14 @@
-# Steam 家庭组工具箱 · Steam Family Toolbox
+# Steam Family Toolbox
 
 [![Release](https://img.shields.io/github/v/release/tt1bt/steam-family-timeline?color=2f6fdb&label=release)](https://github.com/tt1bt/steam-family-timeline/releases/latest)
 [![License](https://img.shields.io/github/license/tt1bt/steam-family-timeline?color=1a9c5b)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.9%2B-2f6fdb)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-1a9c5b)
 
-一个跑在自己电脑上的小工具：**看清 Steam 家庭组里最近都添了什么、谁在用谁的库、什么时候玩的、
-以及一家人到底把时间花在了哪**。
+**Steam 家庭组工具箱** —— 一个跑在自己电脑上的小工具：看清 Steam 家庭组里最近都添了什么、
+谁在用谁的库、什么时候玩的、以及一家人到底把时间花在了哪。
+
+名字刻意不带「家庭组」限定，后面加与家庭组无关的功能也不会显得别扭。
 
 纯本地运行 —— 不登录、不上传、不需要 API Key、**零第三方依赖**。
 

@@ -1,6 +1,6 @@
 """本地 HTTP 服务：提供 API 与前端页面。
 
-启动后浏览器打开 http://127.0.0.1:8765/ 即可看到家庭组时间线。
+启动后浏览器打开 http://127.0.0.1:8765/ 即可看到界面。
 
 只监听 127.0.0.1，不对外暴露。数据全部来自本机 Steam 客户端。
 """
@@ -95,7 +95,7 @@ def get_snapshot():
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = f"SteamFamilyToolbox/{version.__version__}"
+    server_version = f'SteamFamilyToolbox/{version.__version__}'
 
     def log_message(self, fmt, *args):
         if os.environ.get("SFT_VERBOSE"):
@@ -193,24 +193,26 @@ def main():
     # Windows 中文控制台是 GBK，游戏名里的 ™ 之类会 print 失败，先切 UTF-8
     console.setup()
 
-    ap = argparse.ArgumentParser(description="Steam 家庭组工具箱 - 本地服务")
+    ap = argparse.ArgumentParser(description=f"{version.APP_NAME} - 本地服务")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--refresh", action="store_true", help="启动时强制重新采集")
     ap.add_argument("--rebuild", action="store_true", help="只重新生成快照后退出")
     ap.add_argument("--version", action="version",
-                    version=f"Steam 家庭组工具箱 v{version.__version__}")
+                    version=f"{version.APP_NAME} v{version.__version__}")
     args = ap.parse_args()
 
-    banner = r"""
-   ____  _             _____                     _
-  / ___|| |_ ___  __ _|  ___|_ _ _ __ ___  _   _| |_   _  ___
-  \___ \| __/ _ \/ _` | |_ / _` | '_ ` _ \| | | | | | | |/ _ \
-   ___) | ||  __/ (_| |  _| (_| | | | | | | |_| | | |_| |  __/
-  |____/ \__\___|\__,_|_|  \__,_|_| |_| |_|\__, |_|\__, |\___|
-                                           |___/  |___/
-"""
+    # 框线宽度按标题长度算，改名字/版本号不会错位。
+    # 注意 APP_NAME 目前是纯 ASCII，len() 就等于显示宽度；若以后改成中文名，
+    # 这里要换成 wcwidth 之类的宽度计算。
+    title = f"{version.APP_NAME}  v{version.__version__}"
+    inner = max(len(title) + 2, 42)
+    banner = "\n".join((
+        "  ╔" + "═" * inner + "╗",
+        "  ║ " + title.ljust(inner - 1) + "║",
+        "  ╚" + "═" * inner + "╝",
+    ))
 
     if args.rebuild:
         snap = build_snapshot_fresh()
@@ -221,7 +223,6 @@ def main():
         return
 
     print(banner)
-    print(f"  Steam 家庭组工具箱 v{version.__version__}")
     print(f"  {paths.describe()}\n")
 
     if args.refresh:

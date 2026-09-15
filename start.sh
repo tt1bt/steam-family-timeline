@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Steam 家庭组时间线 - macOS / Linux 启动脚本
+# Steam Family Toolbox - macOS / Linux 启动脚本
 set -e
 cd "$(dirname "$0")"
 
@@ -13,5 +13,5 @@ if [ -z "$PY" ]; then
   exit 1
 fi
 
-echo "使用 $PY 启动 Steam 家庭组时间线..."
+echo "使用 $PY 启动 Steam Family Toolbox..."
 exec "$PY" src/server.py "$@"
