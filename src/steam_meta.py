@@ -65,6 +65,11 @@ class MetaCache:
         entry = self.data.get(appid)
         if not entry:
             return False
+        # 没抓到名字的条目分两种，TTL 不同：
+        #   _missing  商店确认没有这个 appid（已下架 / 非商品）—— 30 天内不再问
+        #   _failed   网络或限流的临时失败 —— 每次都重试，否则一次 429 就锁死很久
+        if entry.get("_missing"):
+            return (time.time() - entry.get("_fetched", 0)) < CACHE_TTL
         if entry.get("_failed"):
             return False
         return (time.time() - entry.get("_fetched", 0)) < CACHE_TTL
@@ -89,8 +94,9 @@ class MetaCache:
             if payload is None:
                 if verbose:
                     print(f"  [{idx}/{total}] 请求失败 {a}，稍后重试可补齐")
-                self.data.setdefault(a, {"appid": a, "name": None})
-                self.data[a]["_failed"] = True
+                self.data[a] = {"appid": a, "name": None, "_failed": True}
+                self.save()
+                time.sleep(0.6)
                 continue
 
             entry = payload.get(a) or {}
@@ -100,7 +106,8 @@ class MetaCache:
                 if verbose:
                     print(f"  [{idx}/{total}] ok  {a} {self.data[a]['name']}")
             else:
-                self.data[a] = {"appid": a, "name": None, "_failed": True,
+                # 商店明确返回「没有这个 appid」，是永久状态，记 _missing
+                self.data[a] = {"appid": a, "name": None, "_missing": True,
                                 "_fetched": time.time()}
                 if verbose:
                     print(f"  [{idx}/{total}] miss {a} (商店无数据/已下架)")

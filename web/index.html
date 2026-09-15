@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Steam 家庭组时间线</title>
+<title>Steam 家庭组工具箱</title>
 <style>
 :root{
   --bg:#f4f5f7; --panel:#ffffff; --panel-2:#fafbfc; --border:#e3e6ea;
@@ -196,6 +196,132 @@ input[type=search]:focus{border-color:var(--accent);background:#fff;
   padding:11px 14px;font-size:12.5px;color:#7a5b00;margin-bottom:16px;line-height:1.6;
 }
 .note b{color:#5c4400}
+
+/* ---------- analysis ---------- */
+.an{display:flex;flex-direction:column;gap:16px}
+.panel{
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  padding:17px 19px;box-shadow:var(--shadow);
+}
+.panel h3{margin:0 0 3px;font-size:15px;font-weight:650;letter-spacing:-.005em}
+.panel .hint{font-size:12px;color:var(--text-2);margin:0 0 14px;line-height:1.6}
+.panel .hint code{background:var(--accent-soft);color:var(--accent);
+  padding:0 4px;border-radius:3px;font-size:11.5px}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.seg-toggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;
+  overflow:hidden;background:var(--panel-2);flex:0 0 auto}
+.seg-toggle button{
+  border:0;background:transparent;color:var(--text-2);font-family:inherit;
+  font-size:12px;padding:5px 11px;cursor:pointer;
+}
+.seg-toggle button.on{background:var(--accent);color:#fff;font-weight:600}
+.seg-toggle button + button{border-left:1px solid var(--border)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:11px}
+.kpi{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px}
+.kpi .k{font-size:11.5px;color:var(--text-3);letter-spacing:.02em}
+.kpi .v{font-size:20px;font-weight:660;margin-top:2px;font-variant-numeric:tabular-nums;
+  letter-spacing:-.01em}
+.kpi .v small{font-size:12px;font-weight:500;color:var(--text-2);margin-left:2px}
+.kpi .s{font-size:11.5px;color:var(--text-3);margin-top:4px}
+.kpi.up .v{color:var(--red)}
+.kpi.down .v{color:var(--green)}
+
+/* horizontal ranking bars */
+.bars{display:flex;flex-direction:column;gap:10px}
+.brow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:11px;align-items:center}
+.brow .rank{font-size:11.5px;color:var(--text-3);text-align:right;
+  font-variant-numeric:tabular-nums}
+.brow .nm{font-size:12.5px;font-weight:550;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.brow .nm .aid{color:var(--text-3);font-weight:400;font-size:11px;margin-left:4px}
+.brow .track{height:9px;margin-top:4px;background:var(--panel-2);border-radius:5px;
+  overflow:hidden;border:1px solid var(--border);display:flex}
+.brow .track span{height:100%;display:block}
+.brow .val{font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums;
+  white-space:nowrap;padding-top:1px}
+.brow .val b{color:var(--text);font-weight:650}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:13px;padding-top:12px;
+  border-top:1px dashed var(--border);font-size:11.5px;color:var(--text-2)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;
+  vertical-align:-1px}
+
+/* heatmap */
+.hm-wrap{overflow-x:auto;padding-bottom:4px}
+.hm{display:grid;grid-template-columns:44px repeat(24,1fr);gap:3px;min-width:660px}
+.hm .hh{font-size:10px;color:var(--text-3);text-align:center;
+  font-variant-numeric:tabular-nums;line-height:1.6}
+.hm .hl{font-size:11px;color:var(--text-2);padding-right:6px;text-align:right;
+  line-height:1.75;white-space:nowrap}
+.hm .c{aspect-ratio:1;border-radius:3px;background:var(--panel-2);
+  border:1px solid var(--border);cursor:default}
+.hm .c.pk{outline:2px solid var(--amber);outline-offset:1px}
+.hm-legend{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:11.5px;
+  color:var(--text-3)}
+.hm-legend .sw{display:flex;gap:2px}
+.hm-legend .sw i{width:13px;height:13px;border-radius:3px;display:block}
+
+/* spans */
+.spans{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;
+  margin-top:15px}
+.span-card{background:var(--panel-2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px}
+.span-card .k{font-size:11.5px;color:var(--text-3)}
+.span-card .v{font-size:16px;font-weight:640;margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.span-card .p{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{
+  text-align:left;font-size:11px;color:var(--text-3);font-weight:600;
+  letter-spacing:.03em;text-transform:uppercase;padding:0 10px 8px 0;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.tbl td{padding:9px 10px 9px 0;border-bottom:1px solid var(--panel-2);
+  vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums;
+  padding-right:0}
+.tbl .who-cell{display:flex;align-items:center;gap:7px;font-weight:550}
+.tbl .who-cell .av{width:19px;height:19px;border-radius:50%;background:var(--accent);
+  color:#fff;font-size:9.5px;display:inline-flex;align-items:center;
+  justify-content:center;font-weight:700;flex:0 0 auto}
+.tbl .who-cell.me .av{background:var(--green)}
+.muted{color:var(--text-3)}
+.pill{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;
+  font-weight:600;background:var(--panel-2);border:1px solid var(--border);
+  color:var(--text-2)}
+.pill.me{background:#e6f7ee;border-color:#bfe8d1;color:#0f7a45}
+.pill.alias{background:#f1eafc;border-color:#ded0f7;color:var(--purple)}
+
+/* progress row */
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 118px 74px;gap:12px;
+  align-items:center;padding:8px 0;border-bottom:1px solid var(--panel-2)}
+.prow:last-child{border-bottom:0}
+.prow .nm{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .nm .aid{color:var(--text-3);font-size:11px;margin-left:4px}
+.prow .bar{height:7px;background:var(--panel-2);border-radius:4px;overflow:hidden;
+  border:1px solid var(--border)}
+.prow .bar span{display:block;height:100%;background:var(--accent)}
+.prow.done .bar span{background:var(--green)}
+.prow .val{font-size:12px;text-align:right;font-variant-numeric:tabular-nums;
+  color:var(--text-2);white-space:nowrap}
+.prow .val b{color:var(--text)}
+
+/* svg chart */
+.chart{width:100%;display:block;overflow:visible}
+.chart .gl{stroke:var(--border);stroke-width:1}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+.chart .ar{fill:var(--accent);opacity:.1}
+.chart .pt{fill:var(--panel);stroke:var(--accent);stroke-width:2}
+.chart .ax{fill:var(--text-3);font-size:10px}
+.chart .bx{fill:var(--accent);opacity:.75}
+
+/* two-column layout on wide screens */
+.cols-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.cols-2{grid-template-columns:1fr}}
 footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line-height:1.8}
 .loading{text-align:center;padding:80px 20px;color:var(--text-2)}
 .spin{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--accent);
@@ -208,7 +334,7 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
 <div class="wrap">
 
   <header class="hero">
-    <h1 id="title">Steam 家庭组时间线</h1>
+    <h1 id="title">Steam 家庭组工具箱</h1>
     <div class="sub" id="subtitle">加载中…</div>
     <div class="stats" id="stats"></div>
   </header>
@@ -243,6 +369,7 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
       <button class="tab on" data-tab="timeline">时间线</button>
       <button class="tab" data-tab="games">游戏库</button>
       <button class="tab" data-tab="members">成员</button>
+      <button class="tab" data-tab="analysis">分析</button>
     </div>
 
     <section id="view-timeline"></section>
@@ -258,11 +385,17 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
       <p class="sec-desc">提供 = 该成员的库中被家庭组其他人在本机游玩过的游戏数。</p>
       <div class="grid" id="memberGrid"></div>
     </section>
+
+    <section id="view-analysis" class="hidden">
+      <div class="an" id="analysisRoot"></div>
+    </section>
   </div>
 
   <footer>
     数据来源：本机 Steam 客户端 <code>logs/librarysharing_log.txt</code> ·
-    <code>userdata/*/config/localconfig.vdf</code> · <code>config/loginusers.vdf</code><br>
+    <code>userdata/*/config/localconfig.vdf</code> ·
+    <code>userdata/*/config/librarycache/*.json</code> ·
+    <code>config/loginusers.vdf</code><br>
     游戏元数据来自 Steam 商店公开接口。本工具完全离线运行，不上传任何数据。
   </footer>
 </div>
@@ -403,14 +536,16 @@ function filtered(){
 /* ---------------------------------------------------- draw */
 function draw(){
   const items = filtered();
-  // 先切换三个视图的显示状态，否则切标签后内容会画在隐藏的容器里
+  // 先切换四个视图的显示状态，否则切标签后内容会画在隐藏的容器里
   $('#view-timeline').classList.toggle('hidden', state.tab!=='timeline');
   $('#view-games').classList.toggle('hidden', state.tab!=='games');
   $('#view-members').classList.toggle('hidden', state.tab!=='members');
+  $('#view-analysis').classList.toggle('hidden', state.tab!=='analysis');
 
   if(state.tab==='timeline') drawTimeline(items);
   else if(state.tab==='games') drawGames(items);
-  else drawMembers(items);
+  else if(state.tab==='members') drawMembers(items);
+  else drawAnalysis();
 }
 
 function drawTimeline(items){
@@ -504,6 +639,379 @@ function drawMembers(items){
         }${m.games.length>6?`<span class="tag">+${m.games.length-6}</span>`:''}</div>`:''}
       </div>
     </div>`).join('');
+}
+
+/* ==================================================== analysis */
+const ACCT_PALETTE = ['#2f6fdb','#7a4fd0','#1a9c5b','#c77700',
+                      '#d4443a','#0d8f9e','#8b5cf6','#4b7d1f'];
+const WEEK_MON = ['周一','周二','周三','周四','周五','周六','周日'];
+
+let anState = {plBy:'minutes', plTop:15, nsAll:false};
+
+function acctColors(){
+  const m = {};
+  ((DATA.analysis.playtime||{}).by_account||[]).forEach((a,i)=>{
+    m[a.accountid] = ACCT_PALETTE[i % ACCT_PALETTE.length];
+  });
+  return m;
+}
+
+// 统一的面板外壳
+function panel(title, hint, body, headExtra){
+  return `<div class="panel">
+    <div class="panel-head">
+      <div><h3>${title}</h3>${hint?`<p class="hint">${hint}</p>`:''}</div>
+      ${headExtra||''}
+    </div>${body}</div>`;
+}
+
+function kpi(label, value, unit, sub, cls){
+  return `<div class="kpi ${cls||''}"><div class="k">${label}</div>
+    <div class="v">${value}${unit?`<small>${unit}</small>`:''}</div>
+    ${sub?`<div class="s">${sub}</div>`:''}</div>`;
+}
+
+function pct(n){ return n==null ? '—' : (n>0?'+':'')+n+'%'; }
+
+/* ---- 概览 ---- */
+function anOverview(){
+  const o = DATA.analysis.overview;
+  const trend = o.momentum==null ? null
+    : {cls: o.momentum>0?'up':'down', txt: pct(o.momentum)+' 较前 3 月'};
+  const slot = o.peak_slot;
+
+  return panel('概览', '全部指标基于本机 Steam 客户端日志，不涉及任何在线数据。',
+    `<div class="kpis">
+      ${kpi('统计跨度', o.span_days, '天', '最早 → 最新事件')}
+      ${kpi('日均启动', o.avg_launch_per_day, '次', '共享游戏整体')}
+      ${kpi('人均共享', o.games_per_member, '款', `共 ${DATA.summary.game_count} 款`)}
+      ${kpi('峰值月份', o.peak_month.month, '', `<b>${o.peak_month.launches}</b> 次启动`)}
+      ${trend?kpi('近 3 月趋势', pct(o.momentum), '', trend.txt, trend.cls)
+             :kpi('近 3 月趋势','—','','样本不足')}
+      ${slot?kpi('最活跃时段', `${WEEK_MON[slot.weekday]} ${pad(slot.hour)}:00`, '',
+                 `该时段 <b>${DATA.analysis.heatmap.peak}</b> 次启动`)
+            :kpi('最活跃时段','—','','无数据')}
+      ${kpi('全成就游戏', o.perfect_games, '款', '本机已同步成就的')}
+    </div>
+    <p class="hint" style="margin:12px 0 0">
+      时长与成就只覆盖本机登录过的 <b>${o.local_accounts}</b> 个账号，
+      累计时长 <b>${o.playtime_total_text||'—'}</b>（各账号求和，同一款游戏会被重复计入）。
+    </p>`);
+}
+
+/* ---- 时长排行 ---- */
+function anPlaytime(){
+  const pt = DATA.analysis.playtime;
+  const colors = acctColors();
+  const key = anState.plBy;               // 'minutes' | 'recent'
+  const items = pt.items.filter(x => (x[key]||0) > 0)
+                         .sort((a,b) => (b[key]||0)-(a[key]||0));
+  const top = items.slice(0, anState.plTop);
+  const max = top.length ? top[0][key] : 1;
+
+  const rows = top.map((g,i) => {
+    // 按账号切分条形，看清一款游戏是谁在玩
+    let segs;
+    if(key==='minutes' && g.accounts && g.accounts.length){
+      const withMin = g.accounts.filter(a=>a.minutes>0);
+      const tot = withMin.reduce((s,a)=>s+a.minutes,0) || 1;
+      segs = withMin.map(a => `<span style="width:${(100*a.minutes/tot).toFixed(2)}%;
+        background:${colors[a.accountid]||'var(--accent)'}"
+        title="${esc(a.name)}：${a.minutes.toLocaleString()} 分钟"></span>`).join('');
+    }else{
+      segs = `<span style="width:100%;background:var(--accent)"></span>`;
+    }
+    const w = max ? Math.max(2, 100*g[key]/max) : 0;
+    const val = key==='minutes' ? g.minutes_text : g.recent_text;
+    const who = key==='minutes' && g.account_names && g.account_names.length>1
+      ? `<span class="muted"> · ${g.account_names.length} 人玩过</span>` : '';
+    return `<div class="brow">
+      <div class="rank">${i+1}</div>
+      <div><div class="nm">${esc(g.name)}<span class="aid">#${g.appid}</span>${who}</div>
+        <div class="track" style="width:${w}%">${segs}</div></div>
+      <div class="val"><b>${val}</b></div>
+    </div>`;
+  }).join('');
+
+  const legend = Object.entries(colors).map(([acc,c])=>{
+    const a = pt.by_account.find(x=>x.accountid===acc);
+    return a ? `<span><i style="background:${c}"></i>${esc(a.name)}</span>` : '';
+  }).join('');
+
+  const toggle = `<div class="seg-toggle" id="plBy">
+      <button data-v="minutes" class="${key==='minutes'?'on':''}">累计</button>
+      <button data-v="recent" class="${key==='recent'?'on':''}">近两周</button>
+    </div>`;
+
+  const body = top.length ? `<div class="bars">${rows}</div>
+      ${legend?`<div class="legend">${legend}</div>`:''}
+      <div style="margin-top:12px"><button class="btn" id="plMore">${
+        anState.plTop===15?'显示前 30':'只看前 15'}</button></div>`
+    : `<div class="empty">没有游玩时长数据。</div>`;
+
+  return panel('时长排行', `${pt.note}共 <b>${pt.game_count}</b> 款有记录的游戏，
+    合计 <b>${pt.total_text}</b>。`, body, toggle);
+}
+
+/* ---- 活跃热力图 ---- */
+function anHeatmap(){
+  const hm = DATA.analysis.heatmap;
+  if(!hm.total) return panel('活跃时段','',`<div class="empty">没有启动记录。</div>`);
+
+  const max = hm.peak || 1;
+  let cells = '<div class="hl"></div>';
+  for(let h=0;h<24;h++) cells += `<div class="hh">${h%3===0?pad(h):''}</div>`;
+
+  hm.buckets.forEach((row,d) => {
+    cells += `<div class="hl">${WEEK_MON[d]}</div>`;
+    row.forEach((v,h) => {
+      const a = v ? (0.10 + 0.90*(v/max)) : 0;
+      const isPk = hm.peak_cell && hm.peak_cell.weekday===d && hm.peak_cell.hour===h;
+      cells += `<div class="c${isPk?' pk':''}"
+        style="${v?`background:rgba(47,111,219,${a.toFixed(2)})`:''}"
+        title="${WEEK_MON[d]} ${pad(h)}:00 — ${v} 次"></div>`;
+    });
+  });
+
+  const sw = [0,.2,.4,.6,.8,1].map(a =>
+    `<i style="background:${a?`rgba(47,111,219,${a})`:'var(--panel-2)'}"></i>`).join('');
+
+  const st = hm.span_totals, tot = hm.total || 1;
+  const spans = Object.entries(st).map(([k,v]) =>
+    `<div class="span-card"><div class="k">${k} 时</div>
+      <div class="v">${v} <small style="font-size:11px;color:var(--text-3)">次</small></div>
+      <div class="p">占 ${(100*v/tot).toFixed(1)}%</div></div>`).join('');
+
+  const wk = hm.weekday_avg, we = hm.weekend_avg;
+  const cmp = we>wk ? `周末平均比工作日高 <b>${((we/wk-1)*100).toFixed(0)}%</b>`
+                    : `工作日平均比周末高 <b>${((wk/we-1)*100).toFixed(0)}%</b>`;
+
+  return panel('活跃时段分布',
+    `按「星期 × 小时」聚合 <b>${hm.total.toLocaleString()}</b> 次共享游戏启动。
+     橙色框是峰值单元格。`,
+    `<div class="hm-wrap"><div class="hm">${cells}</div></div>
+     <div class="hm-legend"><span>少</span><span class="sw">${sw}</span>
+       <span>多</span><span style="margin-left:10px">
+       工作日日均 <b>${wk}</b> 次 · 周末日均 <b>${we}</b> 次 —— ${cmp}</span></div>
+     <div class="spans">${spans}</div>`);
+}
+
+/* ---- 月度趋势 ---- */
+function anTrend(){
+  const t = DATA.analysis.trend, s = t.series;
+  if(!s.length) return panel('月度趋势','',`<div class="empty">没有数据。</div>`);
+
+  const W=660, H=170, PL=38, PR=8, PT=14, PB=26;
+  const iw = W-PL-PR, ih = H-PT-PB;
+  const max = Math.max(...s.map(x=>x.launches), 1);
+  const step = s.length>1 ? iw/(s.length-1) : 0;
+  const X = i => PL + i*step;
+  const Y = v => PT + ih - ih*(v/max);
+
+  // 网格 + y 轴刻度
+  let grid='';
+  for(let i=0;i<=3;i++){
+    const v = Math.round(max*i/3), y = Y(v);
+    grid += `<line class="gl" x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}"/>
+      <text class="ax" x="${PL-7}" y="${y+3.5}" text-anchor="end">${v}</text>`;
+  }
+  // 折线 + 面积
+  const pts = s.map((d,i)=>[X(i),Y(d.launches)]);
+  const line = pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area = line + ` L ${X(s.length-1).toFixed(1)} ${PT+ih} L ${PL} ${PT+ih} Z`;
+  const dots = pts.map((p,i)=>`<circle class="pt" cx="${p[0].toFixed(1)}"
+      cy="${p[1].toFixed(1)}" r="3.2"><title>${s[i].month}：${s[i].launches} 次启动，
+      ${s[i].games} 款游戏，${s[i].members} 名成员</title></circle>`).join('');
+
+  // x 轴标签：最多 12 个，间隔取
+  const every = Math.ceil(s.length/12);
+  const labels = s.map((d,i)=> i%every ? '' :
+    `<text class="ax" x="${X(i)}" y="${H-8}" text-anchor="middle">${d.month.slice(2)}</text>`
+  ).join('');
+
+  const chart = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
+    ${grid}<path class="ar" d="${area}"/><path class="ln" d="${line}"/>
+    ${dots}${labels}</svg>`;
+
+  const body = `${chart}
+    <div class="kpis" style="margin-top:14px">
+      ${kpi('峰值月份', t.peak.month, '', `<b>${t.peak.launches}</b> 次启动`)}
+      ${kpi('近 3 个月', t.recent3, '次', '合计启动')}
+      ${t.prev3!=null?kpi('前 3 个月', t.prev3, '次', '合计启动'):''}
+      ${t.momentum!=null?kpi('环比变化', pct(t.momentum), '',
+        t.momentum>0?'热度上升':'热度回落', t.momentum>0?'up':'down'):''}
+    </div>`;
+
+  return panel('月度趋势', `${t.note}共 ${t.month_count} 个月的数据。`, body);
+}
+
+/* ---- 成员贡献 ---- */
+function anContribution(){
+  const c = DATA.analysis.contribution;
+  const rows = c.rows.map(r => `<tr>
+    <td><span class="who-cell ${r.is_me?'me':''}">
+      <span class="av">${esc((r.name||'?')[0])}</span>${esc(r.name)}
+      ${r.is_me?'<span class="pill me">我</span>':''}
+      ${r.is_alias?'<span class="pill alias">别名</span>':''}</span></td>
+    <td class="num">${r.provided_games}</td>
+    <td class="num">${r.provided_usage.toLocaleString()}</td>
+    <td class="num">${r.playtime_text==='—'?'<span class="muted">—</span>':r.playtime_text}</td>
+    <td class="num">${r.recent_text==='—'?'<span class="muted">—</span>':r.recent_text}</td>
+    <td class="num">${r.net_ratio==null?'<span class="muted">—</span>':r.net_ratio}</td>
+  </tr>`).join('');
+
+  const noData = c.local_data_missing.length
+    ? `<div class="note" style="margin:14px 0 0">
+        <b>${c.local_data_missing.length} 名成员在本机没有游玩记录</b>
+        （${c.local_data_missing.map(esc).join('、')}）。
+        本机只能读到登录过的账号配置，其余成员的时长与成就无法获取。</div>` : '';
+
+  return panel('成员贡献',
+    `${c.note}<br>
+     <b>被用次数</b>=该成员库在本机被启动的次数（本机数据里只有出借方，没有启动者）；
+     <b>比值</b>=被用次数 ÷ 自己玩的千小时，越高说明越「被白嫖」。`,
+    `<table class="tbl"><thead><tr>
+      <th>成员</th><th class="num">共享游戏</th><th class="num">被用次数</th>
+      <th class="num">本机总时长</th><th class="num">近两周</th>
+      <th class="num">被用/千小时</th>
+    </tr></thead><tbody>${rows}</tbody></table>${noData}`);
+}
+
+/* ---- 共享锁 ---- */
+function anConflicts(){
+  const c = DATA.analysis.conflicts;
+  if(!c.rows.length) return panel('共享锁占用','',`<div class="empty">没有锁记录。</div>`);
+
+  const top = c.rows.slice(0, 12);
+  const max = Math.max(...top.map(r=>r.events), 1);
+  const rows = top.map((r,i) => `<div class="brow">
+    <div class="rank">${i+1}</div>
+    <div><div class="nm">${esc(r.game)}<span class="aid">#${r.appid}</span></div>
+      <div class="track" style="width:${Math.max(3,100*r.events/max)}%">
+        <span style="width:100%;background:var(--amber)"></span></div></div>
+    <div class="val"><b>${r.events}</b> 次</div>
+  </div>`).join('');
+
+  // 明细表：哪些游戏被锁了多久
+  const detail = c.rows.slice(0,10).map(r => `<tr>
+    <td>${esc(r.game)}</td>
+    <td class="num">${r.session_count}</td>
+    <td class="num">${r.total_text}</td>
+    <td class="num">${r.avg_text}</td>
+    <td>${r.lenders.map(x=>`<span class="pill">${esc(x)}</span>`).join(' ')}</td>
+  </tr>`).join('');
+
+  return panel('共享锁占用',
+    `${c.note}共记录 <b>${c.total_events}</b> 条锁事件，
+     涉及 <b>${c.lock_apps}</b> 款游戏，累计占用 <b>${_fmtMin(c.total_minutes)}</b>。`,
+    `<div class="bars">${rows}</div>
+     <table class="tbl" style="margin-top:16px"><thead><tr>
+       <th>游戏</th><th class="num">占用次数</th><th class="num">累计时长</th>
+       <th class="num">平均</th><th>出借方</th>
+     </tr></thead><tbody>${detail}</tbody></table>`);
+}
+
+function _fmtMin(m){
+  if(!m) return '—';
+  const h = m/60;
+  return h<1 ? m+' 分钟' : (h<100 ? h.toFixed(1)+' 小时' : Math.round(h).toLocaleString()+' 小时');
+}
+
+/* ---- 成就 ---- */
+function anAchievements(){
+  const a = DATA.analysis.achievements;
+  if(!a.items.length) return panel('成就','',`<div class="empty">没有成就数据。</div>`);
+
+  // 各账号的百分比差异巨大（分母从几十到上千），用条形比「已解锁个数」才有意义
+  const accts = a.by_account||[];
+  const maxAch = Math.max(...accts.map(x=>x.achieved), 1);
+  const acct = accts.map(x => `<div class="prow">
+    <div class="nm">${esc(x.name)}
+      ${x.is_member===false?'<span class="pill">非家庭成员</span>':''}
+      <span class="muted" style="font-size:11.5px">${x.games} 款有成就数据</span></div>
+    <div class="bar"><span style="width:${Math.max(1.5,100*x.achieved/maxAch)}%"></span></div>
+    <div class="val"><b>${x.achieved.toLocaleString()}</b> 个 · ${x.percent}%</div>
+  </div>`).join('');
+
+  const almost = a.almost.length ? a.almost.map(i => `<div class="prow">
+    <div class="nm">${esc(i.name)}<span class="aid">${i.achieved}/${i.total}</span></div>
+    <div class="bar"><span style="width:${i.percent}%;background:var(--amber)"></span></div>
+    <div class="val"><b>${i.percent}%</b></div>
+  </div>`).join('') : '<div class="muted" style="font-size:12.5px;padding:6px 0">没有接近全成就的游戏。</div>';
+
+  // total<=2 的多半是工具或试玩版，1/1 全成就没有参考价值
+  const real = a.perfect.filter(i => i.total >= 3);
+  const perfect = real.length ? real.slice(0,16).map(i =>
+    `<span class="pill" style="background:#e6f7ee;border-color:#bfe8d1;color:#0f7a45">
+      ${esc(i.name)} ${i.total}/${i.total}</span>`).join(' ')
+    : '<span class="muted">暂无</span>';
+  const trivial = a.perfect.length - real.length;
+
+  return panel('成就完成度',
+    `${a.note}<br>共 <b>${a.counts.total_games}</b> 款有成就数据，
+     其中 <b>${a.counts.perfect}</b> 款已全成就、<b>${a.counts.in_progress}</b> 款进行中。
+     条形长度对比的是<b>已解锁个数</b>，不是百分比 —— 各账号游戏库大小差异太大，
+     百分比无法横向比较。`,
+    `<div style="font-size:12.5px;color:var(--text-2);margin-bottom:8px;font-weight:600">按账号</div>
+     ${acct}
+     <div class="cols-2" style="margin-top:18px;gap:22px">
+       <div><div style="font-size:12.5px;color:var(--text-2);margin-bottom:8px;font-weight:600">
+         差一点就全成就（≥80%）</div>${almost}</div>
+       <div><div style="font-size:12.5px;color:var(--text-2);margin-bottom:8px;font-weight:600">
+         已全成就${trivial?`<span class="muted" style="font-weight:400">（另有 ${trivial} 款
+         成就数 ≤2 的已省略）</span>`:''}</div>
+         <div style="display:flex;flex-wrap:wrap;gap:5px">${perfect}</div></div>
+     </div>`);
+}
+
+/* ---- 未走共享的游戏 ---- */
+function anNeverShared(){
+  const n = DATA.analysis.never_shared;
+  if(!n.items.length) return panel('未走共享的游戏','',`<div class="empty">—</div>`);
+
+  const limit = anState.nsAll ? n.items.length : 14;
+  const shown = n.items.slice(0, limit);
+  const maxMin = shown.length ? shown[0].minutes : 1;
+  const rows = shown.map(x => `<div class="prow">
+    <div class="nm">${esc(x.name)}<span class="aid">#${x.appid}</span>
+      <span class="muted" style="font-size:11.5px;margin-left:5px">${esc(x.account_name)}</span></div>
+    <div class="bar"><span style="width:${Math.max(1.5,100*x.minutes/maxMin)}%;
+      background:var(--text-3)"></span></div>
+    <div class="val"><b>${x.minutes_text}</b></div>
+  </div>`).join('');
+
+  const more = n.items.length > 14
+    ? `<div style="margin-top:12px"><button class="btn" id="nsMore">${
+        anState.nsAll ? '只看前 14 款' : `显示全部 ${n.items.length} 款`}</button></div>`
+    : '';
+
+  return panel('未走共享的游戏',
+    `${n.note}共 <b>${n.count}</b> 款${anState.nsAll?'':`，当前显示时长最高的 14 款`}。`,
+    `${rows}${more}`);
+}
+
+/* ---- 总入口 ---- */
+function drawAnalysis(){
+  const a = DATA.analysis;
+  if(!a){ $('#analysisRoot').innerHTML =
+    `<div class="panel"><div class="empty">分析模块不可用，请点「重新采集」。</div></div>`; return; }
+
+  $('#analysisRoot').innerHTML =
+    anOverview() + anPlaytime() + anTrend() + anHeatmap() +
+    anContribution() + anAchievements() + anConflicts() + anNeverShared();
+
+  // 时长视图的切换
+  document.querySelectorAll('#plBy button').forEach(b => b.addEventListener('click', () => {
+    anState.plBy = b.dataset.v; drawAnalysis();
+  }));
+  const more = $('#plMore');
+  if(more) more.addEventListener('click', () => {
+    anState.plTop = anState.plTop===15 ? 30 : 15; drawAnalysis();
+  });
+  const ns = $('#nsMore');
+  if(ns) ns.addEventListener('click', () => {
+    anState.nsAll = !anState.nsAll; drawAnalysis();
+  });
 }
 
 boot();

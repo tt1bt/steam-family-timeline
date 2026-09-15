@@ -8,6 +8,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import steam_data as sd  # noqa: E402
 import steam_meta as sm  # noqa: E402
+import steam_play as sp  # noqa: E402
+import analyze as an  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
@@ -141,11 +143,31 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
         })
     members.sort(key=lambda x: (not x["is_me"], x["is_alias"], x["accountid"]))
 
-    # 元数据
+    # 元数据：先抓时间线里的游戏，再补分析用到的（时长/成就里的游戏）
     appids = sorted({ev.appid for ev in events_raw if ev.appid})
+
+    # 采集本机各账号的游玩时长与成就
+    playtime_by_account: dict[str, dict] = {}
+    achievements_by_account: dict[str, dict] = {}
+    for acc in logins:
+        pt = sp.load_playtime(root, acc)
+        if pt:
+            playtime_by_account[acc] = pt
+        ach = sp.load_achievements(root, acc)
+        if ach:
+            achievements_by_account[acc] = ach
+
+    if verbose:
+        print(f"  [info] 有游玩时长数据的账号: {len(playtime_by_account)} 个")
+        print(f"  [info] 有成就数据的账号: {len(achievements_by_account)} 个")
+
     meta_cache = sm.MetaCache(CACHE_PATH)
     if refresh_meta:
-        meta_cache.fetch_missing(appids, verbose=verbose)
+        need = sorted(set(appids) | set(an.collect_appids(
+            playtime_by_account, achievements_by_account)))
+        meta_cache.fetch_missing(need, verbose=verbose)
+    else:
+        meta_cache._load()
 
     # 事件 -> 前端结构
     timeline = []
@@ -232,9 +254,10 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
         "first_ts": min(stamps) if stamps else None,
         "last_ts": max(stamps) if stamps else None,
         "steam_root": root,
+        "local_accounts": len(playtime_by_account),
     }
 
-    return {
+    snapshot = {
         "summary": summary,
         "members": member_agg,
         "games": game_list,
@@ -242,6 +265,23 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
         "kinds": KIND_META,
         "generated_at": int(__import__("time").time()),
     }
+
+    # 分析块。元数据优先用缓存（覆盖比 game_list 全，含时长/成就里的游戏）。
+    meta_cache_map = getattr(meta_cache, "data", {})
+
+    def meta_lookup(appid: str) -> dict:
+        cached = meta_cache_map.get(appid) or {}
+        if cached.get("name"):
+            return cached
+        for g in game_list:
+            if g["appid"] == appid:
+                return g
+        return cached
+
+    snapshot["analysis"] = an.build_analysis(
+        snapshot, root, playtime_by_account, achievements_by_account,
+        meta_lookup=meta_lookup)
+    return snapshot
 
 
 if __name__ == "__main__":

@@ -7,6 +7,10 @@ __pycache__/
 .venv/
 venv/
 
+# 开发期的临时脚本与截图
+_t_*.py
+_shots/
+
 # 编辑器 / 系统
 .vscode/
 .idea/
