@@ -75,11 +75,13 @@ class MetaCache:
         return (time.time() - entry.get("_fetched", 0)) < CACHE_TTL
 
     def fetch_missing(self, appids: list[str], language: str = "schinese",
-                      verbose: bool = True) -> int:
+                      verbose: bool = True, progress=None) -> int:
         """补齐缺失的 appid，返回实际成功抓取的条目数。
 
         注意：appdetails 接口目前**只接受单个 appid**，传逗号分隔的多个
         appid 会直接返回 HTTP 400。因此这里只能一个一个来。
+
+        ``progress(stage, done, total)`` 可选回调，用来给界面上报进度。
         """
         todo = [a for a in appids if not self.is_fresh(a)]
         if not todo:
@@ -88,6 +90,11 @@ class MetaCache:
         fetched = 0
         total = len(todo)
         for idx, a in enumerate(todo, 1):
+            if progress:
+                try:
+                    progress("抓取游戏元数据", idx - 1, total)
+                except Exception:
+                    pass
             params = urllib.parse.urlencode({"appids": a, "l": language})
             payload = _http_json(f"{API}?{params}")
 

@@ -339,7 +339,7 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
     <div class="stats" id="stats"></div>
   </header>
 
-  <div class="note" id="note">
+  <div class="note hidden" id="note">
     <b>关于数据口径：</b>Steam 本地并不保存「某游戏哪天加入家庭库」的记录。
     本工具用 <b>该游戏在家庭组内首次被启动的时间</b> 作为「何时开始能玩到」的近似值——
     这是本机现有数据能达到的最高精度。时间线里每一行都是 Steam 客户端日志的原始事件。
@@ -431,15 +431,63 @@ function relTime(ts){
 }
 
 /* ---------------------------------------------------- init */
+let pollTimer = null;
+
+function showProgress(j){
+  const p = (j && j.progress) || {};
+  const err = j && j.error;
+  const total = p.total || 0, done = p.done || 0;
+  const pct = total ? Math.round(100*done/total) : 0;
+
+  if(err){
+    $('#loading').innerHTML =
+      `<b>采集失败</b><br><br><code style="font-size:12px">${esc(err)}</code>
+       <br><br>请确认本机装过并登录过 Steam。<br>
+       <button class="btn" id="retryBtn" style="margin-top:12px">重试</button>`;
+    const b = $('#retryBtn');
+    if(b) b.addEventListener('click', () => {
+      $('#loading').innerHTML = '<div class="spin"></div>正在重试…';
+      fetch('/api/timeline?refresh=1').catch(()=>{}).then(()=>{ setTimeout(boot, 1500); });
+    });
+    return;
+  }
+
+  $('#loading').innerHTML = `<div class="spin"></div>
+    <div style="font-weight:600;color:var(--text)">正在采集 Steam 本地数据…</div>
+    <div style="font-size:12.5px;margin-top:6px">${esc(p.stage||'读取本地文件')}
+      ${total?`<b>${done}</b> / ${total}`:''}</div>
+    ${total?`<div style="max-width:320px;margin:12px auto 0;height:6px;
+      background:var(--border);border-radius:4px;overflow:hidden">
+      <div style="width:${pct}%;height:100%;background:var(--accent);
+        transition:width .3s"></div></div>`:''}
+    <div style="font-size:12px;margin-top:14px;color:var(--text-3)">
+      首次运行需要抓取游戏封面与名称，通常 1–3 分钟。<br>
+      之后启动会直接用缓存，几秒就好。</div>`;
+}
+
 async function boot(){
   try{
     const r = await fetch('/api/timeline');
+    if(r.status === 503){
+      // 还在采集：显示进度，继续轮询
+      const j = await r.json().catch(()=>({}));
+      showProgress(j);
+      $('#app').classList.add('hidden');
+      clearTimeout(pollTimer);
+      pollTimer = setTimeout(boot, 1200);
+      return;
+    }
     if(!r.ok) throw new Error('HTTP '+r.status);
     DATA = await r.json();
+    clearTimeout(pollTimer);
     render();
   }catch(e){
-    $('#loading').innerHTML = '<b>加载失败：</b>'+esc(e.message)+
-      '<br><br>请确认本地服务仍在运行。';
+    $('#loading').innerHTML =
+      '<b>加载失败：</b>'+esc(e.message)+
+      '<br><br>请确认本地服务仍在运行。<br>'+
+      '<button class="btn" id="retryBtn" style="margin-top:12px">重试</button>';
+    const b = $('#retryBtn');
+    if(b) b.addEventListener('click', boot);
   }
 }
 
@@ -462,6 +510,7 @@ function render(){
 
   buildChips();
   $('#loading').classList.add('hidden');
+  $('#note').classList.remove('hidden');   // 数据就绪后才提示口径
   $('#app').classList.remove('hidden');
 
   $('#q').addEventListener('input', e => {state.q = e.target.value.trim().toLowerCase(); draw();});
@@ -472,8 +521,18 @@ function render(){
     $('#btnRefresh').textContent='采集中…'; $('#btnRefresh').disabled=true;
     try{
       const r = await fetch('/api/timeline?refresh=1');
+      if(r.status === 503){
+        // 后台已开始重新采集：回到加载态，交给 boot() 轮询
+        $('#app').classList.add('hidden');
+        $('#note').classList.add('hidden');
+        $('#loading').classList.remove('hidden');
+        showProgress(await r.json().catch(()=>({})));
+        clearTimeout(pollTimer);
+        pollTimer = setTimeout(boot, 1200);
+        return;
+      }
       DATA = await r.json(); state.members.clear(); state.kinds.clear();
-      buildChips(); render(); 
+      buildChips(); render();
     }catch(e){ alert('重新采集失败：'+e.message); }
     $('#btnRefresh').textContent='重新采集'; $('#btnRefresh').disabled=false;
   });

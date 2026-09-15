@@ -91,17 +91,32 @@
 
 ## 快速开始
 
-### 环境要求
+### 方式一：直接下载 exe（Windows，免装 Python）
 
-- **Python 3.9+**（只用标准库，无需 `pip install` 任何东西）
+从 [Releases](https://github.com/tt1bt/steam-family-timeline/releases/latest) 下载
+`steam-family-toolbox-v1.0.0-windows-x64.exe`，**放到一个你自己能写的文件夹里**
+（比如桌面新建一个文件夹），双击运行。
+
+- 会自动打开浏览器，页面里显示采集进度
+- **首次运行要抓几百款游戏的商店元数据，约 1–3 分钟**，之后走缓存几秒就好
+- 程序会在 exe 同级目录建一个 `data/` 存缓存。这是绿色的，删掉 exe 和 `data/` 就等于完全卸载
+- 如果 exe 放在 `Program Files` 这类不能写的目录，缓存会退到
+  `%LOCALAPPDATA%\SteamFamilyToolbox`
+
+> ⚠️ 单文件 exe 会被部分杀软/浏览器标记为「未知发布者」——因为没有代码签名证书。
+> 这是所有未签名的开源 exe 的常态。你可以选择自己从源码跑，见方式二。
+
+### 方式二：从源码跑（跨平台）
+
+**环境要求**
+
+- **Python 3.9+**（只用标准库，**无需 `pip install` 任何东西**）
 - 本机装过 Steam 并登录过，`logs/librarysharing_log.txt` 里有数据
 - Windows / macOS / Linux 均可
 
-### Windows
+**Windows**：双击 **`启动.cmd`**，脚本会自动找 Python、采集数据、启动服务并打开浏览器。
 
-双击 **`启动.cmd`**。脚本会自动找 Python、采集数据、启动服务并打开浏览器。
-
-### macOS / Linux
+**macOS / Linux**：
 
 ```bash
 chmod +x start.sh
@@ -115,8 +130,12 @@ python src/server.py                 # 启动服务并自动开浏览器
 python src/server.py --no-browser    # 不开浏览器
 python src/server.py --refresh       # 强制重新采集
 python src/server.py --port 9000     # 换端口
+python src/server.py --version       # 打印版本
 python src/build.py                  # 只生成 data/snapshot.json 后退出
 ```
+
+服务**先启动、再在后台采集**，所以浏览器会立刻打开并显示采集进度，
+而不是让你对着一个没有浏览器的黑窗口等几分钟。
 
 启动后访问 <http://127.0.0.1:8765/>。
 
@@ -138,9 +157,11 @@ python src/server.py
 
 ```
 steam-family-timeline/
-├── 启动.cmd              # Windows 一键启动
+├── 启动.cmd              # Windows 一键启动（源码方式）
 ├── start.sh              # macOS / Linux 启动
 ├── src/
+│   ├── paths.py          # 路径解析（源码运行 / 打包 exe 两种模式）
+│   ├── version.py        # 版本号单一来源
 │   ├── vdf.py            # 极简 Valve VDF (KeyValues) 解析器
 │   ├── steam_data.py     # 定位 Steam、解析日志与家庭组配置
 │   ├── steam_play.py     # 采集游玩时长与成就
@@ -150,13 +171,42 @@ steam-family-timeline/
 │   └── server.py         # 本地 HTTP 服务（只监听 127.0.0.1）
 ├── web/
 │   └── index.html        # 单文件前端（无外部依赖，图表全内联 SVG）
-└── data/                 # 生成物，已 gitignore
+├── packaging/
+│   ├── steam-family-toolbox.spec  # PyInstaller 配置
+│   ├── make_icon.py      # 生成 icon.ico
+│   └── icon.ico
+└── data/                 # 运行时生成，已 gitignore
     ├── appmeta.json      # 游戏元数据缓存
     └── snapshot.json     # 完整快照（含分析结果）
 ```
 
 前端是一个零依赖的单文件 HTML，后端只用 Python 标准库。整个项目没有第三方依赖。
 图表是内联 SVG 和 CSS 画出来的，没有 Chart.js / ECharts 之类的库。
+
+## 自己打包 exe
+
+```bash
+python -m venv .venv
+.venv/Scripts/pip install pyinstaller pillow
+
+# 图标（已生成过就不用重跑）
+python packaging/make_icon.py
+
+# 打包
+.venv/Scripts/pyinstaller --clean --noconfirm \
+  --distpath dist --workpath build packaging/steam-family-toolbox.spec
+```
+
+产物在 `dist/steam-family-toolbox.exe`，约 10–15 MB。在非 Windows 平台上换
+PyInstaller 对应平台的 bootloader 即可打出 Linux / macOS 版本。
+
+打包设计上有两点要注意（改 spec 时别踩）：
+
+1. `web/index.html` 必须通过 `datas` 打进去。运行时从 `sys._MEIPASS/web/` 读
+   —— 那是 onefile 每次启动解压出的临时目录，**退出即消失**。所以只读资源和可写
+   数据必须分开，见 `src/paths.py`
+2. **`data/` 绝对不能打包进去**。里面有真实的家庭组成员昵称、账号 ID 和游玩记录，
+   任何人解包 exe 都能拿到
 
 ## HTTP 接口
 
@@ -165,9 +215,18 @@ steam-family-timeline/
 | 路径 | 说明 |
 |---|---|
 | `GET /api/timeline` | 完整快照：概览 + 成员 + 游戏 + 全部事件 + `analysis` 分析块 |
-| `GET /api/timeline?refresh=1` | 强制重新采集后返回 |
+| `GET /api/timeline?refresh=1` | 触发后台重新采集 |
 | `GET /api/raw` | 只返回原始事件（ts / kind / appid / owner / raw 文本） |
-| `GET /api/health` | 存活检查 |
+| `GET /api/health` | 存活检查 + 采集状态（`building` / `progress` / `error` / `version`） |
+
+采集还没完成时，`/api/timeline` 返回 **HTTP 503** 而不是空数据：
+
+```json
+{"building": true, "error": null,
+ "progress": {"stage": "抓取游戏元数据", "done": 128, "total": 402}}
+```
+
+前端就是靠这个显示进度条并轮询的。脚本里调用记得处理 503。
 
 `analysis` 里的字段：
 

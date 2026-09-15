@@ -10,10 +10,12 @@ import steam_data as sd  # noqa: E402
 import steam_meta as sm  # noqa: E402
 import steam_play as sp  # noqa: E402
 import analyze as an  # noqa: E402
+import paths  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
-CACHE_PATH = os.path.join(PROJECT, "data", "appmeta.json")
+# 元数据缓存要放可写目录：打包成 exe 后项目目录是只读的临时解压目录
+CACHE_PATH = paths.META_CACHE
 
 # 角色说明：Steam 家庭组里 role 1 是成人，2 是儿童
 ROLE_NAMES = {"1": "成人", "2": "儿童"}
@@ -66,8 +68,19 @@ def resolve_remote_names(accountids: list[str]) -> dict[str, str]:
 
 
 def build(steam_root: str | None = None, refresh_meta: bool = True,
-          resolve_names: bool = True, verbose: bool = False) -> dict:
-    """生成完整的时间线数据包。"""
+          resolve_names: bool = True, verbose: bool = False,
+          progress=None) -> dict:
+    """生成完整的数据包。
+
+    ``progress(stage, done, total)`` 可选回调，用于向前端汇报长任务的进度。
+    """
+    def report(stage: str, done: int, total: int) -> None:
+        if progress:
+            try:
+                progress(stage, done, total)
+            except Exception:
+                pass
+
     root = steam_root or sd.read_steam_env() or sd.find_steam_root()
     if not root or not os.path.isdir(root):
         raise RuntimeError(
@@ -165,7 +178,7 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
     if refresh_meta:
         need = sorted(set(appids) | set(an.collect_appids(
             playtime_by_account, achievements_by_account)))
-        meta_cache.fetch_missing(need, verbose=verbose)
+        meta_cache.fetch_missing(need, verbose=verbose, progress=report)
     else:
         meta_cache._load()
 
@@ -288,7 +301,7 @@ if __name__ == "__main__":
     import json
 
     data = build(refresh_meta=True, resolve_names=True, verbose=True)
-    out = os.path.join(PROJECT, "data", "snapshot.json")
+    out = paths.SNAPSHOT
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(data, fh, ensure_ascii=False, indent=2)
