@@ -8,7 +8,7 @@
 #: 名字不该被当前功能绑死。
 APP_NAME = "Steam Family Toolbox"
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 #: 用于 Release tag 与附件名
 RELEASE_NAME = f"v{__version__}"

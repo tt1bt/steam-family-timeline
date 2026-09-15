@@ -8,12 +8,15 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import socketserver
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -186,7 +189,40 @@ class Handler(BaseHTTPRequestHandler):
 
 class Server(ThreadingHTTPServer):
     daemon_threads = True
-    allow_reuse_address = True
+    # ⚠️ Windows 上 SO_REUSEADDR 的语义和 POSIX **不一样**：它允许「抢占」一个
+    # 已经被别的进程监听的端口，结果两个实例同时绑同一个端口，请求随机落到
+    # 其中一个，表现就是「有时候数据不对」。POSIX 下它只是允许复用 TIME_WAIT，
+    # 是安全的。所以这里按平台区分。
+    allow_reuse_address = (os.name != "nt")
+
+
+# 本机请求要绕过系统代理，否则会被代理拦成 502
+_LOCAL_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _is_addr_in_use(exc: OSError) -> bool:
+    """判断异常是不是「端口已被占用」。Windows 走 winerror，别只看 errno。"""
+    return (getattr(exc, "errno", None) == errno.EADDRINUSE
+            or getattr(exc, "winerror", None) == 10048
+            or "10048" in str(exc))
+
+
+def probe_existing(host: str, port: int, timeout: float = 1.5):
+    """如果这个端口上已经跑着一个本工具的实例，返回它的 /api/health 字典。
+
+    用来区分「端口被别的程序占了」和「我自己已经开着了」——
+    后者不该报错，直接把浏览器打开就好。
+    """
+    url = f"http://{host}:{port}/api/health"
+    try:
+        with _LOCAL_OPENER.open(url, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None
+    # 认出自己：/api/health 是我们特有的字段组合
+    if isinstance(data, dict) and data.get("ok") is True and "version" in data:
+        return data
+    return None
 
 
 def main():
@@ -199,6 +235,8 @@ def main():
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--refresh", action="store_true", help="启动时强制重新采集")
     ap.add_argument("--rebuild", action="store_true", help="只重新生成快照后退出")
+    ap.add_argument("--no-pause", action="store_true",
+                    help="出错时不等待按键（脚本/CI 用）")
     ap.add_argument("--version", action="version",
                     version=f"{version.APP_NAME} v{version.__version__}")
     args = ap.parse_args()
@@ -223,7 +261,49 @@ def main():
         return
 
     print(banner)
-    print(f"  {paths.describe()}\n")
+    print(f"  {paths.describe()}")
+    print(f"  日志文件 {paths.LOG_FILE}\n")
+
+    # 已经有一个实例在跑？直接把浏览器打开，别去抢端口。
+    # 双击两次是很常见的操作，不该报个错就把窗口关了。
+    existing = probe_existing(args.host, args.port)
+    if existing is not None:
+        url = f"http://{args.host}:{args.port}/"
+        print(f"检测到本工具已经在运行（v{existing.get('version')}）")
+        print(f"直接打开已有的页面：{url}")
+        print("如果你想同时跑第二个实例，用 --port 换一个端口。\n")
+        if not args.no_browser:
+            webbrowser.open(url)
+        return
+
+    # 换端口重试：被别的程序占用时自动往后找
+    httpd = None
+    port = args.port
+    for offset in range(20):
+        port = args.port + offset
+        try:
+            httpd = Server((args.host, port), Handler)
+            break
+        except OSError as exc:
+            if not _is_addr_in_use(exc):
+                raise
+            if offset == 0:
+                print(f"端口 {port} 已被其他程序占用，尝试往后找...")
+            # 占用者可能正好是我们自己的另一个实例
+            existing = probe_existing(args.host, port)
+            if existing is not None:
+                url = f"http://{args.host}:{port}/"
+                print(f"端口 {port} 上已有本工具在运行，直接打开：{url}")
+                if not args.no_browser:
+                    webbrowser.open(url)
+                return
+    if httpd is None:
+        raise RuntimeError(
+            f"端口 {args.port}–{args.port + 19} 全被占用，"
+            "请用 --port 指定一个空闲端口")
+
+    if port != args.port:
+        print(f"已改用端口 {port}\n")
 
     if args.refresh:
         _state["data"] = None
@@ -234,7 +314,7 @@ def main():
     snap = get_snapshot()
     if snap is None:
         print("正在采集 Steam 本地数据并抓取游戏元数据（首次运行需要几分钟）...")
-        print("浏览器稍后会自动打开，页面里会显示进度。这个窗口别关。\n")
+        print("浏览器会自动打开，页面里会显示进度。这个窗口别关。\n")
     else:
         s = snap["summary"]
         print(f"家庭组：{s['group_name']}（{s['group_id']}）")
@@ -242,14 +322,13 @@ def main():
               f"启动记录 {s['launch_count']} 次 | 时间线 {s['event_count']} 条")
         print(f"Steam 目录：{s['steam_root']}")
 
-    url = f"http://{args.host}:{args.port}/"
+    url = f"http://{args.host}:{port}/"
     print(f"\n服务已启动 -> {url}")
     print("按 Ctrl+C 停止\n")
 
     if not args.no_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 
-    httpd = Server((args.host, args.port), Handler)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -268,5 +347,33 @@ def build_snapshot_fresh() -> dict:
     return data
 
 
+def run() -> int:
+    """带全套兜底的入口：编码、日志、崩溃可见、不静默关窗口。"""
+    # Windows 中文控制台是 GBK，游戏名里的 ™ 之类会 print 失败，先切 UTF-8
+    console.setup()
+
+    # 把输出镜像到日志。双击启动时窗口会消失，日志是唯一线索。
+    log_ok = console.tee_to_file(paths.LOG_FILE)
+    log_path = paths.LOG_FILE if log_ok else None
+    console.install_excepthook(log_path)
+
+    # 双击启动时崩了窗口会立刻关掉，用户什么都看不到 —— 这里等他读完
+    no_pause = "--no-pause" in sys.argv
+
+    try:
+        main()
+        return 0
+    except KeyboardInterrupt:
+        console.say("\n已停止。")
+        return 130
+    except SystemExit as exc:                 # --version / --help
+        return int(exc.code or 0)
+    except BaseException as exc:              # noqa: BLE001
+        console.report_crash(exc, log_path)
+        if not no_pause:
+            console.pause_before_exit()
+        return 1
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(run())
