@@ -21,6 +21,7 @@ from urllib.parse import urlparse, parse_qs
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import console  # noqa: E402
 import paths  # noqa: E402
 import version  # noqa: E402
 import build as builder  # noqa: E402
@@ -189,6 +190,9 @@ class Server(ThreadingHTTPServer):
 
 
 def main():
+    # Windows 中文控制台是 GBK，游戏名里的 ™ 之类会 print 失败，先切 UTF-8
+    console.setup()
+
     ap = argparse.ArgumentParser(description="Steam 家庭组工具箱 - 本地服务")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")

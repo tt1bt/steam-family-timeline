@@ -11,6 +11,7 @@ import steam_meta as sm  # noqa: E402
 import steam_play as sp  # noqa: E402
 import analyze as an  # noqa: E402
 import paths  # noqa: E402
+import console  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
@@ -299,6 +300,8 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
 
 if __name__ == "__main__":
     import json
+
+    console.setup()
 
     data = build(refresh_meta=True, resolve_names=True, verbose=True)
     out = paths.SNAPSHOT

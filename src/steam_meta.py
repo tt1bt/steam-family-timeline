@@ -11,10 +11,14 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import console  # noqa: E402
 
 CACHE_TTL = 30 * 24 * 3600  # 30 天
 API = "https://store.steampowered.com/api/appdetails"
@@ -100,7 +104,7 @@ class MetaCache:
 
             if payload is None:
                 if verbose:
-                    print(f"  [{idx}/{total}] 请求失败 {a}，稍后重试可补齐")
+                    console.say(f"  [{idx}/{total}] 请求失败 {a}，稍后重试可补齐")
                 self.data[a] = {"appid": a, "name": None, "_failed": True}
                 self.save()
                 time.sleep(0.6)
@@ -111,13 +115,13 @@ class MetaCache:
                 self.data[a] = _slim(a, entry["data"])
                 fetched += 1
                 if verbose:
-                    print(f"  [{idx}/{total}] ok  {a} {self.data[a]['name']}")
+                    console.say(f"  [{idx}/{total}] ok  {a} {self.data[a]['name']}")
             else:
                 # 商店明确返回「没有这个 appid」，是永久状态，记 _missing
                 self.data[a] = {"appid": a, "name": None, "_missing": True,
                                 "_fetched": time.time()}
                 if verbose:
-                    print(f"  [{idx}/{total}] miss {a} (商店无数据/已下架)")
+                    console.say(f"  [{idx}/{total}] miss {a} (商店无数据/已下架)")
 
             self.save()
             time.sleep(0.6)
