@@ -15,6 +15,15 @@ import console  # noqa: E402
 import version  # noqa: E402
 import library_add as ladd  # noqa: E402
 
+#: 快照格式版本。改动快照结构（新增/改名/删除顶层或 analysis 里的块）时**必须 +1**。
+#: 服务端读取时会校验，不匹配就重新聚合 —— 不校验的话，老用户升级后
+#: 新增的视图会静默空白。
+SNAPSHOT_SCHEMA = 2
+
+#: 校验快照完整性时要求存在的顶层键
+SNAPSHOT_REQUIRED_KEYS = ("summary", "members", "games", "timeline",
+                          "kinds", "analysis", "additions")
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
 # 元数据缓存要放可写目录：打包成 exe 后项目目录是只读的临时解压目录
@@ -277,6 +286,11 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
     }
 
     snapshot = {
+        # 快照格式版本。**新增分析块时必须 +1**，否则老用户机器上的旧快照会被
+        # 直接复用，新视图一片空白（v1.0.3 → v1.0.4 的「入库」空白就是这么来的）。
+        # 判断依据必须是独立字段，不能拿 summary.version 凑数 ——
+        # 那个是应用版本，和快照结构不是一回事。
+        "schema": SNAPSHOT_SCHEMA,
         "summary": summary,
         "members": member_agg,
         "games": game_list,

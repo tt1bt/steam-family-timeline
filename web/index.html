@@ -696,6 +696,19 @@ function drawLibrary(){
     ? `${fmtDate(lw.from)} ~ ${fmtDate(lw.to)}`
     : '未知';
 
+  // additions 缺失 = 这份快照是旧版本生成的（服务端会校验并重建，
+  // 但万一用户手动塞了旧快照，这里要说清楚，别让人以为是「没有共享游戏」）
+  if(!DATA.additions){
+    $('#libDesc').innerHTML = '本次数据里没有入库分析块。';
+    $('#libRoot').innerHTML = `
+      <div class="empty">
+        这份快照里<b>没有入库分析块</b>，通常是因为它由旧版本生成、
+        被直接复用了。<br><br>
+        点右上角「<b>重新采集</b>」重建一次即可，不用重新下载几百款游戏的元数据，几秒就好。
+      </div>`;
+    return;
+  }
+
   $('#libDesc').innerHTML =
     `${rows.length} 款共享游戏：<b>${A.added||0}</b> 款有可信入库时间，` +
     `<b>${A.bound||0}</b> 款只能确定上界。`;

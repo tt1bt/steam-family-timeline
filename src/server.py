@@ -39,14 +39,39 @@ _state = {"data": None, "lock": threading.Lock(), "building": False,
 
 
 def _read_snapshot_file():
-    """从磁盘读快照。读到返回 dict，读不到或坏了返回 None。"""
+    """从磁盘读快照，**并校验它是不是当前版本能用的**。
+
+    返回 ``(快照或 None, 不可用的原因或 None)``。
+
+    为什么要校验：快照是长期缓存，而新版会往里加分析块。如果不校验，
+    老用户升级后程序会直接复用旧结构的快照，新加的视图一片空白 ——
+    症状很迷惑（界面没问题、也不报错，就是没数据）。
+    这类「静默空白」比崩溃更难排查，所以宁可多花几秒重新聚合。
+
+    注意 ``summary.version`` **不能**当判断依据：那是应用版本，
+    和快照结构不是一回事（同一个应用版本也可能改结构）。
+    """
     if not os.path.isfile(SNAPSHOT):
-        return None
+        return None, "没有快照"
     try:
         with open(SNAPSHOT, "r", encoding="utf-8") as fh:
-            return json.load(fh)
+            snap = json.load(fh)
     except Exception:
-        return None
+        return None, "快照损坏，读不出来"
+    if not isinstance(snap, dict):
+        return None, "快照格式不对"
+
+    got = snap.get("schema")
+    if got != builder.SNAPSHOT_SCHEMA:
+        if got is None:
+            return None, "快照是旧版本生成的（没有格式版本号）"
+        return None, f"快照格式版本不匹配（{got} != {builder.SNAPSHOT_SCHEMA}）"
+
+    missing = [k for k in builder.SNAPSHOT_REQUIRED_KEYS if k not in snap]
+    if missing:
+        return None, "快照缺少字段：" + "、".join(missing)
+
+    return snap, None
 
 
 def _on_progress(stage: str, done: int, total: int) -> None:
@@ -86,13 +111,18 @@ def get_snapshot():
     """取快照。**不阻塞**：还没准备好就返回 None，让前端去轮询。
 
     首次运行要抓几百款游戏的商店元数据，同步等待会让用户盯着一个没有浏览器的
-    黑窗口好几分钟。所以这里只负责「有缓存就加载，没有就起后台线程」。
+    黑窗口好几分钟。所以这里只负责「有可用缓存就加载，否则起后台线程」。
+
+    快照过期时**不必重新抓元数据** —— 元数据有独立缓存（appmeta.json），
+    ``fetch_missing`` 只补缺的，所以升级后重新聚合通常只要几秒。
     """
     if _state["data"] is None and not _state["building"]:
-        cached = _read_snapshot_file()
+        cached, why = _read_snapshot_file()
         if cached is not None:
             _state["data"] = cached
         else:
+            if why and why != "没有快照":
+                console.say(f"  [info] 需要重新聚合本地数据：{why}")
             start_build()
     return _state["data"]
 
