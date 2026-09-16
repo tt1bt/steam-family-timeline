@@ -164,7 +164,20 @@ def pause_before_exit(message: str = "按回车键关闭这个窗口... ") -> No
 
 
 def report_crash(exc: BaseException, log_path: str | None = None) -> None:
-    """把崩溃信息清楚地打出来 —— 这是用户唯一能看到的东西，别只丢个 traceback。"""
+    """把崩溃信息清楚地打出来 —— 这是用户唯一能看到的东西，别只丢个 traceback。
+
+    开头先把控制台窗口**显示回来**：独立窗口模式下控制台是隐藏的
+    （appwindow.hide_console），不恢复的话用户只能看到窗口一闪/全无反应 ——
+    那正是我们花大力气修掉的「双击没反应」。
+    """
+    try:
+        import appwindow
+        if not appwindow.is_console_visible():
+            appwindow.set_window_title("Steam Family Toolbox - 启动失败")
+            appwindow.show_console()
+    except Exception:
+        pass
+
     say("")
     say("=" * 62)
     say("  启动失败")

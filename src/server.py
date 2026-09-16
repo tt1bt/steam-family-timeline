@@ -1,6 +1,7 @@
 """本地 HTTP 服务：提供 API 与前端页面。
 
-启动后浏览器打开 http://127.0.0.1:8765/ 即可看到界面。
+界面默认开成**独立窗口**（用系统自带 Edge/Chrome 的应用模式，见 appwindow.py），
+`--browser` 可以退回浏览器标签页。
 
 只监听 127.0.0.1，不对外暴露。数据全部来自本机 Steam 客户端。
 """
@@ -12,6 +13,7 @@ import errno
 import json
 import os
 import socketserver
+import subprocess
 import sys
 import threading
 import time
@@ -28,6 +30,7 @@ import console  # noqa: E402
 import paths  # noqa: E402
 import version  # noqa: E402
 import build as builder  # noqa: E402
+import appwindow  # noqa: E402
 
 WEB_DIR = paths.WEB_DIR
 DATA_DIR = paths.DATA_DIR
@@ -267,6 +270,12 @@ def main():
     ap.add_argument("--rebuild", action="store_true", help="只重新生成快照后退出")
     ap.add_argument("--selftest", action="store_true",
                     help="打印环境自检信息后退出（报 bug 时贴这个）")
+    ap.add_argument("--browser", action="store_true",
+                    help="用默认浏览器开标签页，而不是独立窗口")
+    ap.add_argument("--window-size", default="1360,900",
+                    help="独立窗口尺寸，默认 1360,900")
+    ap.add_argument("--keep-console", action="store_true",
+                    help="独立窗口模式下不隐藏控制台窗口")
     ap.add_argument("--no-pause", action="store_true",
                     help="出错时不等待按键（脚本/CI 用）")
     ap.add_argument("--version", action="version",
@@ -300,16 +309,16 @@ def main():
     print(f"  {paths.describe()}")
     print(f"  日志文件 {paths.LOG_FILE}\n")
 
-    # 已经有一个实例在跑？直接把浏览器打开，别去抢端口。
+    # 已经有一个实例在跑？直接把界面打开，别去抢端口。
     # 双击两次是很常见的操作，不该报个错就把窗口关了。
     existing = probe_existing(args.host, args.port)
     if existing is not None:
         url = f"http://{args.host}:{args.port}/"
         print(f"检测到本工具已经在运行（v{existing.get('version')}）")
-        print(f"直接打开已有的页面：{url}")
+        print(f"直接打开已有的界面：{url}")
         print("如果你想同时跑第二个实例，用 --port 换一个端口。\n")
         if not args.no_browser:
-            webbrowser.open(url)
+            _present(url, args)
         return
 
     # 换端口重试：被别的程序占用时自动往后找
@@ -331,7 +340,7 @@ def main():
                 url = f"http://{args.host}:{port}/"
                 print(f"端口 {port} 上已有本工具在运行，直接打开：{url}")
                 if not args.no_browser:
-                    webbrowser.open(url)
+                    _present(url, args)
                 return
     if httpd is None:
         raise RuntimeError(
@@ -350,7 +359,7 @@ def main():
     snap = get_snapshot()
     if snap is None:
         print("正在采集 Steam 本地数据并抓取游戏元数据（首次运行需要几分钟）...")
-        print("浏览器会自动打开，页面里会显示进度。这个窗口别关。\n")
+        print("界面会自动打开，里面会显示进度。\n")
     else:
         s = snap["summary"]
         print(f"家庭组：{s['group_name']}（{s['group_id']}）")
@@ -362,8 +371,11 @@ def main():
     print(f"\n服务已启动 -> {url}")
     print("按 Ctrl+C 停止\n")
 
+    # 服务起好之后再开窗口 —— 保证窗口一打开就有东西可显示
     if not args.no_browser:
-        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+        proc = _present(url, args)
+        if proc is not None:
+            _watch_window(proc, httpd)
 
     try:
         httpd.serve_forever()
@@ -381,6 +393,54 @@ def build_snapshot_fresh() -> dict:
         json.dump(data, fh, ensure_ascii=False, indent=2)
     _state["data"] = data
     return data
+
+
+def _present(url: str, args) -> "subprocess.Popen | None":
+    """把界面呈现给用户：优先独立窗口，退回默认浏览器。
+
+    返回窗口进程（调用方可以等它退出），浏览器标签页模式返回 None。
+    """
+    if args.browser:
+        webbrowser.open(url)
+        return None
+
+    try:
+        w, h = (int(v) for v in str(args.window_size).split(","))
+    except Exception:
+        w, h = 1360, 900
+
+    profile = os.path.join(DATA_DIR, "browserprofile")
+    proc = appwindow.open_app_window(url, w, h, profile)
+    if proc is None:
+        # 没找到 Edge/Chrome —— 退回标签页，功能不受影响
+        console.say("  [info] 没找到 Edge/Chrome，改用默认浏览器打开")
+        webbrowser.open(url)
+        return None
+
+    console.say(f"  已打开独立窗口（{w}×{h}）。关掉窗口即退出程序。")
+    if not args.keep_console:
+        # 藏掉黑窗口。出错时 report_crash 会把它显示回来，所以不影响排查。
+        appwindow.hide_console()
+    return proc
+
+
+def _watch_window(proc, httpd) -> None:
+    """窗口关掉就收工，别让服务在后台空转。
+
+    隐藏了控制台之后，用户唯一的「关闭」动作就是关窗口 ——
+    不盯着子进程的话，进程会在后台一直活着，还占着端口。
+    """
+    def run():
+        try:
+            proc.wait()
+        except Exception:
+            pass
+        console.say("\n窗口已关闭，正在退出...")
+        try:
+            httpd.shutdown()
+        except Exception:
+            pass
+    threading.Thread(target=run, daemon=True).start()
 
 
 def print_selftest() -> None:
@@ -415,6 +475,19 @@ def print_selftest() -> None:
     say(f"  ├ 快照        : {paths.SNAPSHOT}"
         f"  {'✓' if os.path.isfile(paths.SNAPSHOT) else '（尚未生成）'}")
     say(f"  └ 日志        : {paths.LOG_FILE}")
+    say("")
+    say("【界面】")
+    browser = appwindow.find_browser()
+    say(f"  独立窗口      : {'✓ 可用' if browser else '✗ 找不到 Edge/Chrome，会退回浏览器标签页'}")
+    if browser:
+        say(f"  └ 浏览器      : {browser}")
+    # 注意区分「根本没有控制台窗口」和「被我们藏起来了」——
+    # 从管道/后台启动时 GetConsoleWindow() 返回 0，那不是隐藏
+    if appwindow.has_console():
+        state = "可见" if appwindow.is_console_visible() else "已隐藏（独立窗口模式）"
+    else:
+        state = "无（不是从控制台启动的）"
+    say(f"  控制台窗口    : {state}")
     say("")
     say("【运行环境】")
     say(f"  Python        : {sys.version.split()[0]}")

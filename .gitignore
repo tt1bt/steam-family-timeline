@@ -1,7 +1,8 @@
-# 依赖 / 缓存
-data/appmeta.json
-data/snapshot.json
-data/_server.log
+# 运行时数据（缓存、快照、日志、独立窗口的浏览器配置）—— 全是本机状态，不是源码。
+# ⚠️ 必须忽略**整个目录**，不要逐个列文件：
+# 独立窗口会在 data/browserprofile/ 下生成一整个 Edge 配置目录（含 History，
+# 里面有家庭组名和账号信息）。逐个列文件的话，新加的运行时产物会被直接提交上去。
+data/
 __pycache__/
 *.py[cod]
 .venv/
