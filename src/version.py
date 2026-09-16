@@ -8,7 +8,7 @@ HTTP 的 ``Server`` 头、前端 ``<title>``、请求外部接口的 User-Agent 
 #: 名字不该被当前功能绑死。
 APP_NAME = "Steam Family Toolbox"
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 #: 用于 Release tag 与附件名
 RELEASE_NAME = f"v{__version__}"

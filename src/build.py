@@ -13,6 +13,7 @@ import analyze as an  # noqa: E402
 import paths  # noqa: E402
 import console  # noqa: E402
 import version  # noqa: E402
+import library_add as ladd  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
@@ -299,6 +300,28 @@ def build(steam_root: str | None = None, refresh_meta: bool = True,
     snapshot["analysis"] = an.build_analysis(
         snapshot, root, playtime_by_account, achievements_by_account,
         meta_lookup=meta_lookup)
+
+    # 入库时间（近似）。**本地没有权威入库记录**，这里是从日志反推的，
+    # 每条都带 kind（added=可信 / bound=仅上界）和证据，前端必须区分显示。
+    first_use: dict[str, float] = {}
+    for ev in timeline:
+        a = ev.get("appid")
+        if not a:
+            continue
+        a = str(a)
+        if a not in first_use or ev["ts"] < first_use[a]:
+            first_use[a] = ev["ts"]
+    try:
+        snapshot["additions"] = ladd.build_additions(
+            root, [g["appid"] for g in game_list], first_use,
+            accounts=len(playtime_by_account))
+    except Exception as exc:  # noqa: BLE001
+        # 推导失败不该拖垮整个采集
+        console.say(f"  [warn] 入库时间推导失败：{type(exc).__name__}: {exc}")
+        snapshot["additions"] = {"rows": [], "added": 0, "bound": 0,
+                                 "unknown": 0, "by_confidence": {},
+                                 "log_window": {"from": None, "to": None},
+                                 "accounts_scanned": 0}
     return snapshot
 
 

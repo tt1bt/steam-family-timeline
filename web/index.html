@@ -198,6 +198,57 @@ input[type=search]:focus{border-color:var(--accent);background:#fff;
 }
 .note b{color:#5c4400}
 
+/* ---------- 入库时间线 ---------- */
+.lib-note{
+  background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--amber);
+  border-radius:var(--radius);padding:14px 16px;margin:0 0 16px;
+  font-size:13px;line-height:1.7;color:var(--text-2);
+}
+.lib-note b{color:var(--text)}
+.lib-legend{display:flex;flex-wrap:wrap;gap:6px 20px;margin:10px 0 8px}
+.lib-legend .lg{display:flex;align-items:center;gap:7px}
+.lib-legend .sw{width:11px;height:11px;border-radius:3px;flex:none}
+.sw.lib-a{background:var(--green)}
+.sw.lib-b{background:var(--text-3)}
+.lib-caveat{
+  margin-top:8px;padding-top:9px;border-top:1px dashed var(--border);
+  font-size:12.5px;color:var(--text-3);line-height:1.72;
+}
+.lib-m{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);
+}
+.lib-mhead{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--panel-2);border-bottom:1px solid var(--border);font-size:13.5px;
+}
+.lib-mcount{color:var(--text-3);font-size:12px}
+.lib-mtag{
+  color:var(--green);background:rgba(26,156,91,.1);
+  padding:1px 7px;border-radius:20px;font-size:11.5px;
+}
+.lib-row{
+  display:grid;grid-template-columns:76px 152px minmax(130px,1fr) minmax(0,1.4fr);
+  gap:12px;align-items:center;padding:9px 14px;
+  border-bottom:1px solid var(--border);font-size:13px;
+}
+.lib-row:last-child{border-bottom:none}
+.lib-row:hover{background:var(--panel-2)}
+.lib-kind{
+  text-align:center;padding:2px 0;border-radius:5px;font-size:11.5px;
+  font-weight:600;white-space:nowrap;
+}
+.lib-kind.lib-a{background:rgba(26,156,91,.13);color:var(--green)}
+.lib-kind.lib-b{background:var(--panel-2);color:var(--text-3);border:1px solid var(--border)}
+.lib-kind.lib-c{background:var(--panel-2);color:var(--text-3)}
+.lib-when{color:var(--text-2);font-variant-numeric:tabular-nums;font-size:12.5px}
+.lib-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-note2{color:var(--text-3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:860px){
+  .lib-row{grid-template-columns:74px 140px 1fr;row-gap:4px}
+  .lib-note2{grid-column:1/-1}
+}
+
 /* ---------- analysis ---------- */
 .an{display:flex;flex-direction:column;gap:16px}
 .panel{
@@ -341,9 +392,10 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
   </header>
 
   <div class="note hidden" id="note">
-    <b>关于数据口径：</b>Steam 本地并不保存「某游戏哪天加入家庭库」的记录。
-    本工具用 <b>该游戏在家庭组内首次被启动的时间</b> 作为「何时开始能玩到」的近似值——
-    这是本机现有数据能达到的最高精度。时间线里每一行都是 Steam 客户端日志的原始事件。
+    <b>关于数据口径：</b>Steam 本地<u>不保存</u>「某游戏哪天加入家庭库」的记录——那是服务端状态，
+    客户端只拿到结果。时间线里每一行都是 Steam 客户端日志的原始事件（精确到分钟）。
+    想看每款游戏<b>大约何时进入本机库</b>，切到「<b>入库</b>」标签页——
+    那里是从日志旁证反推的，每条都标了可信度，并说明了哪些判不准。
   </div>
 
   <div id="loading" class="loading"><div class="spin"></div>正在采集 Steam 本地数据…</div>
@@ -370,6 +422,7 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
       <button class="tab on" data-tab="timeline">时间线</button>
       <button class="tab" data-tab="games">游戏库</button>
       <button class="tab" data-tab="members">成员</button>
+      <button class="tab" data-tab="library">入库</button>
       <button class="tab" data-tab="analysis">分析</button>
     </div>
 
@@ -389,6 +442,12 @@ footer{margin-top:34px;text-align:center;font-size:12px;color:var(--text-3);line
 
     <section id="view-analysis" class="hidden">
       <div class="an" id="analysisRoot"></div>
+    </section>
+
+    <section id="view-library" class="hidden">
+      <h2 class="sec-title">入库时间线</h2>
+      <p class="sec-desc" id="libDesc"></p>
+      <div id="libRoot"></div>
     </section>
   </div>
 
@@ -602,16 +661,106 @@ function filtered(){
 /* ---------------------------------------------------- draw */
 function draw(){
   const items = filtered();
-  // 先切换四个视图的显示状态，否则切标签后内容会画在隐藏的容器里
+  // 先切换五个视图的显示状态，否则切标签后内容会画在隐藏的容器里
   $('#view-timeline').classList.toggle('hidden', state.tab!=='timeline');
   $('#view-games').classList.toggle('hidden', state.tab!=='games');
   $('#view-members').classList.toggle('hidden', state.tab!=='members');
+  $('#view-library').classList.toggle('hidden', state.tab!=='library');
   $('#view-analysis').classList.toggle('hidden', state.tab!=='analysis');
 
   if(state.tab==='timeline') drawTimeline(items);
   else if(state.tab==='games') drawGames(items);
   else if(state.tab==='members') drawMembers(items);
+  else if(state.tab==='library') drawLibrary();
   else drawAnalysis();
+}
+
+/* ---------------------------------------------------- 入库时间线
+   DATA.additions 里每条都带 kind：
+     added —— 封面下载与库缓存创建两个独立信号落在同一时刻，可以当入库时间用
+     bound —— 只能确定「不晚于此时已在库」，是上界不是入库时间
+   两种必须用不同视觉呈现，绝不能把上界画成日期，否则就是在编数据。
+*/
+const LIB_KIND = {
+  added:  {label:'入库',    cls:'lib-a', tip:'可信入库时间'},
+  bound:  {label:'≤ 上界',  cls:'lib-b', tip:'只能确定「不晚于此时已在库」'},
+  unknown:{label:'无从判断', cls:'lib-c', tip:'本机没有任何关于它的时间记录'},
+};
+
+function drawLibrary(){
+  const A = DATA.additions || {rows:[]};
+  const rows = A.rows || [];
+  const lw = A.log_window || {};
+  const gmap = new Map((DATA.games||[]).map(g=>[String(g.appid), g]));
+  const win = lw.from
+    ? `${fmtDate(lw.from)} ~ ${fmtDate(lw.to)}`
+    : '未知';
+
+  $('#libDesc').innerHTML =
+    `${rows.length} 款共享游戏：<b>${A.added||0}</b> 款有可信入库时间，` +
+    `<b>${A.bound||0}</b> 款只能确定上界。`;
+
+  // 按「估算时间所在月」分组；没有时间的归到最后一组
+  const groups = new Map();
+  rows.forEach(r=>{
+    const key = r.ts ? fmtDate(r.ts).slice(0,7) : '_unknown';
+    if(!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  });
+  const keys = [...groups.keys()].filter(k=>k!=='_unknown').sort().reverse();
+  if(groups.has('_unknown')) keys.push('_unknown');
+
+  const noteHtml = `
+    <div class="lib-note">
+      <b>先说清楚口径 —— 这是推导值，不是 Steam 的权威记录。</b><br>
+      Steam 本地<b>不存在</b>「某游戏于 X 日加入库」这个记录，那是服务端状态。
+      这里是从本机日志反推的近似值，每条都标注了证据强度：
+      <div class="lib-legend">
+        <span class="lg"><i class="sw lib-a"></i><b>入库</b>：封面下载与库缓存创建时间吻合，基本可信</span>
+        <span class="lg"><i class="sw lib-b"></i><b>≤ 上界</b>：只能确定「不晚于此时已在库」，真实入库可能更早</span>
+      </div>
+      <div class="lib-caveat">
+        为什么老游戏判不准：Steam 会在版本升级、库重整时<b>批量重建</b>库缓存文件，
+        创建时间会被整体刷新。实测本机 236 款有游玩记录的游戏里，
+        <b>58 款的「最后游玩时间」早于其库缓存创建时间</b>，最大差 1799 天 —— 
+        所以那个时间对老游戏没有意义，这里只当作上界。<br>
+        封面下载日志的覆盖范围是 <b>${win}</b>，比这更早发生的入库事件已经无从考证。
+      </div>
+    </div>`;
+
+  if(!rows.length){
+    $('#libRoot').innerHTML = noteHtml +
+      `<div class="empty">没有可分析的共享游戏。</div>`;
+    return;
+  }
+
+  $('#libRoot').innerHTML = noteHtml + keys.map(k=>{
+    const list = groups.get(k);
+    const isUnknown = k === '_unknown';
+    const title = isUnknown ? '无从判断' : k.replace('-', ' 年 ') + ' 月';
+    const head = isUnknown
+      ? `<span class="lib-mcount">${list.length} 款</span>`
+      : `<span class="lib-mcount">${list.length} 款</span>` +
+        (list.some(r=>r.kind==='added')
+          ? ` <span class="lib-mtag">含 ${list.filter(r=>r.kind==='added').length} 款可信入库</span>` : '');
+    return `<div class="lib-m">
+      <div class="lib-mhead"><b>${esc(title)}</b>${head}</div>
+      ${list.map(r=>{
+        const g = gmap.get(r.appid) || {};
+        const K = LIB_KIND[r.kind] || LIB_KIND.unknown;
+        const when = r.ts
+          ? (r.kind==='bound' ? '≤ ' : '') + fmtDate(r.ts) + ' ' + fmtTime(r.ts)
+          : '—';
+        const name = g.name || ('AppID ' + r.appid);
+        return `<div class="lib-row">
+          <span class="lib-kind ${K.cls}" title="${esc(K.tip)}">${K.label}</span>
+          <span class="lib-when">${esc(when)}</span>
+          <span class="lib-name" title="${esc(name)}">${esc(name)}</span>
+          <span class="lib-note2">${esc(r.note||'')}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
 }
 
 function drawTimeline(items){
